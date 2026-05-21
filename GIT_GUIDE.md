@@ -205,13 +205,17 @@ tag 的作用：以后无论代码改了多少版，`git checkout v0.1-docs` 就
 
 ---
 
-## 五、分工建议
+## 五、分工建议（5 人）
 
-每个人负责自己擅长的区域，避免同时改同一个文件导致冲突：
+每个人负责自己擅长的区域，文件改动范围不重叠，减少冲突：
 
-- **A（后端）**: zsc-module 下的 Java 代码 + sql 脚本
-- **B（前端）**: views/biz/bill/ 下的 Vue 页面 + api/biz/bill.js
-- **C（整合）**: 系统菜单权限配置 + 联调测试
+- **A（后端-实体层）**: Entity + DTO + VO + Mapper
+- **B（后端-业务层）**: Service + Controller
+- **C（前端-页面）**: views/biz/bill/ 下所有 Vue 组件
+- **D（前端-对接）**: api/biz/bill.js + 菜单权限 SQL
+- **E（整合测试）**: 系统配置 + 联调 + 测试验收
+
+**并行开发顺序**: A 和 C 可以同时开始。A 完成实体/DTO 后 B 接手写 Service。B 完成接口后 D 写 API 封装。全部完成后 E 联调。
 
 ---
 
