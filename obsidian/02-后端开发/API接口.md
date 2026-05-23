@@ -134,6 +134,18 @@ tags: [backend, api]
 | PUT | — | 修改类别 | `biz:category:edit` |
 | DELETE | `/{id}` | 删除类别 | `biz:category:remove` |
 
+## 业务接口 `/api/bill`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/query` | 分页查询票据列表（普通用户只看自己） | `biz:bill:list` |
+| GET | `/{id}` | 票据详情（含附件列表 + 审核历史） | `biz:bill:query` |
+| POST | — | 新增票据（status=0 草稿 / status=1 提交） | `biz:bill:add` |
+| PUT | — | 修改票据（仅草稿或已退回状态） | `biz:bill:add` |
+| POST | `/submit/{id}` | 提交草稿进入审核流程 | `biz:bill:add` |
+| DELETE | `/{id}` | 删除草稿票据及其附件 | `biz:bill:remove` |
+| POST | `/review` | 审核票据（通过/退回） | `biz:bill:review` |
+
 ## 代码生成器 `/tool/gen`
 
 | 方法 | 路径 | 说明 |

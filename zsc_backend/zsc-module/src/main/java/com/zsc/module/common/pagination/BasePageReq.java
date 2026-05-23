@@ -20,7 +20,7 @@ public class BasePageReq {
     /** 默认分页记录 **/
     private final static int DEFAULT_PAGESIZE = 10;
 
-    @Max(value = 200, message = "每页大小不能超过100条记录")
+    @Max(value = 100, message = "每页大小不能超过100条记录")
     @Min(value = 1, message = "每页大小不能小于1")
     private int pageSize = DEFAULT_PAGESIZE;
 
@@ -39,7 +39,7 @@ public class BasePageReq {
     }
 
     // 获取分页对象
-    public Page convetToPage() {
+    public Page convertToPage() {
         return new Page(this.getCurrent(), this.getPageSize());
     }
 }

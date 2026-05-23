@@ -79,7 +79,7 @@ public class BizCategoryServiceImpl extends ServiceImpl<BizCategoryMapper, BizCa
                     BizCategory::getStatus, queryDto.getStatus())
                 .orderByAsc(BizCategory::getSortOrder)
                 .orderByDesc(BizCategory::getCreateTime)
-                .page(queryDto.convetToPage());
+                .page(queryDto.convertToPage());
 
         return PageResult.fromPage(result);
     }
