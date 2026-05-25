@@ -5,7 +5,8 @@ export function listBizCategory(query) {
   return request({
     url: '/api/category/query',
     method: 'post',
-    data: query
+    data: query,
+    headers: { repeatSubmit: false }
   })
 }
 

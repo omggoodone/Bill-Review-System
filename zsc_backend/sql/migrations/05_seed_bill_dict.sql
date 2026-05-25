@@ -24,8 +24,8 @@ ON DUPLICATE KEY UPDATE role_name = '普通用户';
 -- 4. 票据菜单
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `route_name`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
 (3000, '票据管理', 0, 4, 'bill', NULL, '', '', 1, 0, 'M', '0', '0', '', 'bill', 'admin', NOW(), '', NULL, '票据管理目录'),
-(3001, '我的票据', 3000, 1, 'myBill', 'biz/bill/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:list', 'documentation', 'admin', NOW(), '', NULL, '我的票据菜单'),
-(3002, '票据审核', 3000, 2, 'review', 'biz/bill/review/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:list', 'edit', 'admin', NOW(), '', NULL, '票据审核菜单'),
+(3001, '我的票据', 3000, 1, 'myBill', 'biz/bill/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:list', 'my-bill', 'admin', NOW(), '', NULL, '我的票据菜单'),
+(3002, '票据审核', 3000, 2, 'review', 'biz/bill/review/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'edit', 'admin', NOW(), '', NULL, '票据审核菜单'),
 (3003, '票据查询', 3001, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'biz:bill:query', '#', 'admin', NOW(), '', NULL, ''),
 (3004, '票据新增', 3001, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'biz:bill:add', '#', 'admin', NOW(), '', NULL, ''),
 (3005, '票据删除', 3001, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'biz:bill:remove', '#', 'admin', NOW(), '', NULL, ''),

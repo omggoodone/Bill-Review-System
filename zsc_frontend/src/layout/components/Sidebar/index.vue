@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'has-logo': showLogo }" class="sidebar-container">
+  <div :class="{ 'has-logo': showLogo, 'is-collapsed': isCollapse }" class="sidebar-container">
     <logo v-if="showLogo" :collapse="isCollapse" />
     <el-scrollbar wrap-class="scrollbar-wrapper">
       <el-menu
@@ -7,7 +7,7 @@
         :collapse="isCollapse"
         :background-color="getMenuBackground"
         :text-color="getMenuTextColor"
-        :unique-opened="true"
+        :unique-opened="false"
         :active-text-color="theme"
         :collapse-transition="false"
         mode="vertical"
@@ -99,6 +99,12 @@ const activeMenu = computed(() => {
     .el-sub-menu__title {
       color: v-bind(getMenuTextColor);
     }
+  }
+
+  // 分隔线：顶级菜单项底部
+  > .el-scrollbar > .scrollbar-wrapper > .el-menu > .el-sub-menu,
+  > .el-scrollbar > .scrollbar-wrapper > .el-menu > .el-menu-item {
+    border-bottom: 1px solid var(--el-border-color-light, rgba(255,255,255,.08));
   }
 }
 </style>

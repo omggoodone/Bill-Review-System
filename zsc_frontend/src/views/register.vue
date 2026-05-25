@@ -1,7 +1,10 @@
 <template>
   <div class="register">
     <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">{{ title }}</h3>
+      <div class="login-logo">
+        <img src="@/assets/logo/logo.svg" alt="logo" />
+        <h3 class="title">票据报销系统</h3>
+      </div>
       <el-form-item prop="username">
         <el-input 
           v-model="registerForm.username" 
@@ -78,10 +81,7 @@
 <script setup>
 import { ElMessageBox } from "element-plus"
 import { getCodeImg, register } from "@/api/login"
-import defaultSettings from '@/settings'
-
-const title = import.meta.env.VITE_APP_TITLE
-const footerContent = defaultSettings.footerContent
+const footerContent = 'Copyright © 2026 票据报销系统. All Rights Reserved.'
 const router = useRouter()
 const { proxy } = getCurrentInstance()
 
@@ -166,10 +166,21 @@ getCode()
   background-image: url("../assets/images/login-background.jpg");
   background-size: cover;
 }
-.title {
-  margin: 0px auto 30px auto;
+.login-logo {
   text-align: center;
-  color: #707070;
+  margin-bottom: 30px;
+}
+.login-logo img {
+  width: 64px;
+  height: 64px;
+  display: block;
+  margin: 0 auto 12px;
+}
+.title {
+  margin: 0;
+  text-align: center;
+  color: #444;
+  font-size: 22px;
 }
 
 .register-form {

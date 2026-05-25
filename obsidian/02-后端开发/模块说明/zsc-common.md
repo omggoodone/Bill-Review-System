@@ -36,11 +36,11 @@ created: "2026-05-23"
 
 ### 响应基类
 
-| 类 | 继承 | 关键方法 | 说明 |
-|----|------|----------|------|
-| `AjaxResult` | `extends HashMap<String, Object>` | `success()`, `error()`, `warn()` | 系统模块统一响应 |
-| `R<T>` | — | `ok()`, `fail()` | 另一通用响应包装 |
-| `TableDataInfo` | — | code, msg, rows, total | 分页查询响应 |
+| 类               | 继承                                | 关键方法                             | 说明       |
+| --------------- | --------------------------------- | -------------------------------- | -------- |
+| `AjaxResult`    | `extends HashMap<String, Object>` | `success()`, `error()`, `warn()` | 系统模块统一响应 |
+| `R<T>`          | —                                 | `ok()`, `fail()`                 | 另一通用响应包装 |
+| `TableDataInfo` | —                                 | code, msg, rows, total           | 分页查询响应   |
 
 ### 分页工具
 
@@ -108,21 +108,21 @@ BaseException (base/)
 
 ## 工具类 (`com.zsc.common.utils`，25+ 个类)
 
-| 类别 | 工具类 |
-|------|--------|
-| 通用 | `StringUtils`, `DateUtils`, `Arith`(精确计算), `LogUtils`, `ExceptionUtil`, `MessageUtils`, `Threads` |
-| Bean | `BeanUtils`, `BeanValidators` |
-| 文件 | `FileUtils`, `FileUploadUtils`, `FileTypeUtils`, `ImageUtils`, `MimeTypeUtils` |
-| HTTP | `HttpUtils`, `HttpHelper`, `UserAgentUtils` (yauaa 解析 UA) |
-| IP | `IpUtils`, `AddressUtils` (IP 归属地) |
-| Excel | `ExcelUtil` (POI 读写) |
-| 加密 | `Base64`, `Md5Utils` |
-| UUID | `IdUtils`, `Seq`, `UUID` |
-| SQL | `SqlUtil` (防注入转义) |
-| Spring | `SpringUtils` (获取 Bean) |
-| Servlet | `ServletUtils` |
-| 安全 | `SecurityUtils` (获取当前 LoginUser) |
-| 字典 | `DictUtils` |
+| 类别      | 工具类                                                                                               |
+| ------- | ------------------------------------------------------------------------------------------------- |
+| 通用      | `StringUtils`, `DateUtils`, `Arith`(精确计算), `LogUtils`, `ExceptionUtil`, `MessageUtils`, `Threads` |
+| Bean    | `BeanUtils`, `BeanValidators`                                                                     |
+| 文件      | `FileUtils`, `FileUploadUtils`, `FileTypeUtils`, `ImageUtils`, `MimeTypeUtils`                    |
+| HTTP    | `HttpUtils`, `HttpHelper`, `UserAgentUtils` (yauaa 解析 UA)                                         |
+| IP      | `IpUtils`, `AddressUtils` (IP 归属地)                                                                |
+| Excel   | `ExcelUtil` (POI 读写)                                                                              |
+| 加密      | `Base64`, `Md5Utils`                                                                              |
+| UUID    | `IdUtils`, `Seq`, `UUID`                                                                          |
+| SQL     | `SqlUtil` (防注入转义)                                                                                 |
+| Spring  | `SpringUtils` (获取 Bean)                                                                           |
+| Servlet | `ServletUtils`                                                                                    |
+| 安全      | `SecurityUtils` (获取当前 LoginUser)                                                                  |
+| 字典      | `DictUtils`                                                                                       |
 
 ## XSS / 过滤器 (`com.zsc.common.filter`)
 

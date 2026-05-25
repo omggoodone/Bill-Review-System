@@ -9,21 +9,26 @@ import com.zsc.module.domain.dto.BizBillReviewDto;
 import com.zsc.module.domain.dto.query.BizBillQueryDto;
 import com.zsc.module.domain.vo.BizBillDetailVo;
 import com.zsc.module.domain.vo.BizBillVo;
+import com.zsc.module.domain.vo.TrendItemVo;
 import com.zsc.module.service.BizBillService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 票据控制器
  * 普通用户: 新增/编辑/提交/删除/查询自己的票据
  * 管理员: 审核票据 + 查看全部
  */
+@Slf4j
 @Tag(name = "票据管理")
 @Validated
 @RestController
@@ -42,7 +47,9 @@ public class BizBillController {
     @PreAuthorize("@ss.hasPermi('biz:bill:list')")
     @PostMapping("/query")
     public ResultVo<PageResult<BizBillVo>> query(@RequestBody BizBillQueryDto queryDto) {
-        return ResultVo.ok(bizBillService.queryBills(queryDto));
+        PageResult pageResult = bizBillService.queryBills(queryDto);
+        log.info(pageResult.getList().toString());
+        return ResultVo.ok(pageResult);
     }
 
     /**
@@ -118,6 +125,20 @@ public class BizBillController {
     public ResultVo review(@Valid @RequestBody BizBillReviewDto dto) {
         bizBillService.reviewBill(dto);
         return ResultVo.ok("审核成功");
+    }
+
+    @Operation(summary = "本月提交趋势")
+    @PreAuthorize("@ss.hasPermi('biz:bill:list')")
+    @GetMapping("/trend")
+    public ResultVo<List<TrendItemVo>> trend() {
+        return ResultVo.ok(bizBillService.getMonthlyTrend());
+    }
+
+    @Operation(summary = "各类别金额汇总")
+    @PreAuthorize("@ss.hasPermi('biz:bill:list')")
+    @GetMapping("/category-summary")
+    public ResultVo<List<TrendItemVo>> categorySummary() {
+        return ResultVo.ok(bizBillService.getCategoryAmountSummary());
     }
 
 }

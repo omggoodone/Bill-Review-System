@@ -1,30 +1,52 @@
 <template>
-  <el-menu class="topbar-menu" :ellipsis="false" :default-active="activeMenu" :active-text-color="theme" mode="horizontal">
-    <sidebar-item :key="route.path + index" v-for="(route, index) in topMenus" :item="route" :base-path="route.path" />
-
-    <el-sub-menu index="more" class="el-sub-menu__hide-arrow" v-if="moreRoutes.length > 0">
-      <template #title>
-        <span>更多菜单</span>
+  <div class="topbar-wrapper">
+    <el-menu
+      class="topbar-menu"
+      :ellipsis="false"
+      :default-active="activeMenu"
+      :active-text-color="theme"
+      mode="horizontal"
+    >
+      <template v-for="menu in visibleMenus" :key="menu.path">
+        <el-menu-item
+          class="parent-item"
+          :index="parentPath(menu)"
+          @click="handleParentClick(menu)"
+        >
+          <svg-icon v-if="menu.meta && menu.meta.icon" :icon-class="menu.meta.icon" />
+          <span>{{ menu.meta ? menu.meta.title : '' }}</span>
+          <span v-if="menu.children && menu.children.length && !isExpanded(menu)" class="arrow-icon">▸</span>
+        </el-menu-item>
+        <template v-if="isExpanded(menu) && menu.children">
+          <el-menu-item
+            v-for="child in menu.children"
+            :key="child.path"
+            class="child-item"
+            :index="childPath(menu, child)"
+            @click="navigateTo(menu, child)"
+          >
+            <span>{{ child.meta ? child.meta.title : '' }}</span>
+          </el-menu-item>
+          <el-menu-item class="collapse-item" :index="parentPath(menu)" @click="collapseMenu(menu)">
+            <span>◂ 收起</span>
+          </el-menu-item>
+        </template>
       </template>
-      <sidebar-item :key="route.path + index" v-for="(route, index) in moreRoutes" :item="route" :base-path="route.path" />
-    </el-sub-menu>
-  </el-menu>
+    </el-menu>
+  </div>
 </template>
 
 <script setup>
-import SidebarItem from '../Sidebar/SidebarItem'
-import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 
 const route = useRoute()
-const appStore = useAppStore()
+const router = useRouter()
 const settingsStore = useSettingsStore()
 const permissionStore = usePermissionStore()
 
-const sidebarRouters = computed(() => permissionStore.sidebarRouters)
 const theme = computed(() => settingsStore.theme)
-const device = computed(() => appStore.device)
+
 const activeMenu = computed(() => {
   const { meta, path } = route
   if (meta.activeMenu) {
@@ -33,67 +55,122 @@ const activeMenu = computed(() => {
   return path
 })
 
-const visibleNumber = ref(5)
-const topMenus = computed(() => {
-  return permissionStore.sidebarRouters.filter((f) => !f.hidden).slice(0, visibleNumber.value)
+const visibleMenus = computed(() => {
+  return permissionStore.sidebarRouters.filter(f => !f.hidden)
 })
-const moreRoutes = computed(() => {
-  return permissionStore.sidebarRouters.filter((f) => !f.hidden).slice(visibleNumber.value, sidebarRouters.value.length - visibleNumber.value)
-})
-function setVisibleNumber() {
-  const width = document.body.getBoundingClientRect().width / 3
-  visibleNumber.value = parseInt(width / 85)
+
+// 找到当前路由所属的父菜单
+function findParentMenu(path) {
+  for (const menu of visibleMenus.value) {
+    const base = parentPath(menu)
+    if (path === base || path.startsWith(base + '/')) {
+      return menu
+    }
+  }
+  return null
 }
 
-onMounted(() => {
-  window.addEventListener('resize', setVisibleNumber)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', setVisibleNumber)
-})
+const expandedParentPath = ref('')
 
-onMounted(() => {
-  setVisibleNumber()
-})
+// 路由变化时自动展开对应父菜单
+watch(() => route.path, (path) => {
+  const parent = findParentMenu(path)
+  if (parent) {
+    expandedParentPath.value = parentPath(parent)
+  }
+}, { immediate: true })
+
+function isExpanded(menu) {
+  return expandedParentPath.value === parentPath(menu)
+}
+
+function handleParentClick(menu) {
+  if (menu.children && menu.children.length) {
+    if (expandedParentPath.value === parentPath(menu)) {
+      // 已展开：导航到第一个子菜单
+      const child = menu.children[0]
+      router.push(childPath(menu, child))
+    } else {
+      // 展开并导航到第一个子菜单
+      expandedParentPath.value = parentPath(menu)
+      const child = menu.children[0]
+      router.push(childPath(menu, child))
+    }
+  } else {
+    router.push(parentPath(menu))
+  }
+}
+
+function collapseMenu(menu) {
+  expandedParentPath.value = ''
+  router.push(parentPath(menu))
+}
+
+function parentPath(menu) {
+  const p = menu.path
+  return p.startsWith('/') ? p : '/' + p
+}
+
+function childPath(parent, child) {
+  const base = parent.path.startsWith('/') ? parent.path : '/' + parent.path
+  return base + '/' + child.path
+}
+
+function navigateTo(parent, child) {
+  router.push(childPath(parent, child))
+}
 </script>
 
 <style lang="scss">
-/* menu item */
-.topbar-menu.el-menu--horizontal .el-submenu__title, .topbar-menu.el-menu--horizontal .el-menu-item {
-  padding: 0 10px !important;
+.topbar-wrapper {
+  flex: 1;
+  min-width: 0;
 }
 
-.topbar-menu.el-menu--horizontal > .el-menu-item {
-  float: left;
-  height: 50px !important;
-  line-height: 50px !important;
-  color: #303133 !important;
-  padding: 0 5px !important;
-  margin: 0 10px !important;
+.topbar-menu.el-menu--horizontal {
+  border-bottom: none;
+
+  > .el-menu-item {
+    height: 50px;
+    line-height: 50px;
+    color: #303133;
+    padding: 0 14px;
+    margin: 0 4px;
+    border-bottom: 2px solid transparent;
+    flex-shrink: 0;
+
+    &.is-active {
+      border-bottom-color: v-bind(theme);
+    }
+  }
+
+  > .parent-item {
+    font-weight: 500;
+  }
+
+  > .child-item {
+    background: #f5f7fa;
+    padding: 0 16px;
+    margin: 0 2px;
+    font-size: 13px;
+
+    &.is-active {
+      background: #ecf5ff;
+    }
+  }
+
+  > .collapse-item {
+    color: #909399;
+    padding: 0 12px;
+    &:hover {
+      color: v-bind(theme);
+    }
+  }
 }
 
-.el-sub-menu.is-active .svg-icon, .el-menu-item.is-active .svg-icon + span, .el-sub-menu.is-active .svg-icon + span, .el-sub-menu.is-active .el-sub-menu__title span {
-  color: v-bind(theme);
-}
-
-/* sub-menu item */
-.topbar-menu.el-menu--horizontal > .el-sub-menu .el-sub-menu__title {
-  float: left;
-  line-height: 50px !important;
-  color: #303133 !important;
-  margin: 0 15px -3px!important;
-}
-
-/* topbar more arrow */
-.topbar-menu .el-sub-menu .el-sub-menu__icon-arrow {
-  position: static;
-  margin-left: 8px;
-  margin-top: 0px;
-  display: block !important;
-}
-
-/* menu__title el-menu-item */
-.topbar-menu.el-menu--horizontal .el-sub-menu__title, .topbar-menu.el-menu--horizontal .el-menu-item {
-  height: 60px;
+.topbar-menu .arrow-icon {
+  font-size: 10px;
+  margin-left: 2px;
+  color: #c0c4cc;
 }
 </style>

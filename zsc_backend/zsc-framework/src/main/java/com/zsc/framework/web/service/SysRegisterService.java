@@ -17,6 +17,7 @@ import com.zsc.common.utils.StringUtils;
 import com.zsc.framework.manager.AsyncManager;
 import com.zsc.framework.manager.factory.AsyncFactory;
 import com.zsc.system.service.ISysConfigService;
+import com.zsc.system.service.ISysRoleService;
 import com.zsc.system.service.ISysUserService;
 
 /**
@@ -35,6 +36,9 @@ public class SysRegisterService
 
     @Autowired
     private RedisCache redisCache;
+
+    @Autowired
+    private ISysRoleService roleService;
 
     /**
      * 注册
@@ -87,6 +91,9 @@ public class SysRegisterService
             else
             {
                 AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.REGISTER, MessageUtils.message("user.register.success")));
+                // 自动分配"普通用户"角色
+                Long[] roleIds = {3L};
+                userService.insertUserAuth(sysUser.getUserId(), roleIds);
             }
         }
         return msg;

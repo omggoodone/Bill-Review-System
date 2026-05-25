@@ -81,7 +81,7 @@ public class BizCategoryController {
      * 分页查询业务类别列表
      */
     @Operation(summary = "查询业务类别列表")
-    @PreAuthorize("@ss.hasPermi('biz:category:list')")
+    @PreAuthorize("@ss.hasPermi('biz:category:query')")
     @PostMapping("/query")
     public ResultVo<PageResult> query(@RequestBody BizCategoryQueryDto queryDto) {
         return ResultVo.ok(bizCategoryService.queryCategories(queryDto));

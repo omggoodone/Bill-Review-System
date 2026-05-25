@@ -8,6 +8,9 @@ import com.zsc.module.domain.dto.query.BizBillQueryDto;
 import com.zsc.module.domain.entity.BizBill;
 import com.zsc.module.domain.vo.BizBillDetailVo;
 import com.zsc.module.domain.vo.BizBillVo;
+import com.zsc.module.domain.vo.TrendItemVo;
+
+import java.util.List;
 
 /**
  * 票据表 服务类
@@ -48,5 +51,9 @@ public interface BizBillService extends IService<BizBill> {
      * 审核票据（通过或退回）
      */
     void reviewBill(BizBillReviewDto dto);
+
+    List<TrendItemVo> getMonthlyTrend();
+
+    List<TrendItemVo> getCategoryAmountSummary();
 
 }

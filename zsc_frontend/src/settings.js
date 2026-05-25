@@ -12,7 +12,7 @@ export default {
   /**
    * 是否系统布局配置
    */
-  showSettings: true,
+  showSettings: false,
 
   /**
    * 菜单导航模式 1、纯左侧 2、混合（左侧+顶部） 3、纯顶部
@@ -22,12 +22,12 @@ export default {
   /**
    * 是否显示 tagsView
    */
-  tagsView: true,
+  tagsView: false,
   
   /**
    * 显示页签图标
    */
-  tagsIcon: false,
+  tagsIcon: true,
 
   /**
    * 是否固定头部
@@ -42,7 +42,7 @@ export default {
   /**
    * 是否显示动态标题
    */
-  dynamicTitle: false,
+  dynamicTitle: true,
 
   /**
    * 是否显示底部版权

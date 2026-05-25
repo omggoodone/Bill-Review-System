@@ -15,11 +15,6 @@
           <b></b><b></b>
         </div>
       </el-tooltip>
-      <el-tooltip content="顶部菜单" placement="bottom">
-        <div class="item top" @click="handleNavType(3)" :class="{ activeItem: navType == 3 }">
-          <b></b><b></b>
-        </div>
-      </el-tooltip>
     </div>
     <div class="setting-drawer-title">
       <h3 class="drawer-title">主题风格设置</h3>

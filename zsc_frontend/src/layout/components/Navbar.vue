@@ -1,6 +1,7 @@
 <template>
   <div class="navbar" :class="'nav' + settingsStore.navType">
     <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+    <header-search v-if="settingsStore.navType == 1" id="header-search" class="header-search-left" />
     <breadcrumb v-if="settingsStore.navType == 1" id="breadcrumb-container" class="breadcrumb-container" />
     <top-nav v-if="settingsStore.navType == 2" id="topmenu-container" class="topmenu-container" />
     <template v-if="settingsStore.navType == 3">
@@ -10,16 +11,6 @@
 
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
-        <header-search id="header-search" class="right-menu-item" />
-
-        <el-tooltip content="源码地址" effect="dark" placement="bottom">
-          <ruo-yi-git id="zsc-git" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <el-tooltip content="文档地址" effect="dark" placement="bottom">
-          <ruo-yi-doc id="zsc-doc" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
         <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
         <el-tooltip content="主题模式" effect="dark" placement="bottom">
@@ -34,31 +25,17 @@
         </el-tooltip>
       </template>
 
-      <el-dropdown @command="handleCommand" class="avatar-container right-menu-item hover-effect" trigger="hover">
+      <router-link to="/user/profile" class="avatar-container right-menu-item hover-effect">
         <div class="avatar-wrapper">
           <img :src="userStore.avatar" class="user-avatar" />
           <span class="user-nickname"> {{ userStore.nickName }} </span>
         </div>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <router-link to="/user/profile">
-              <el-dropdown-item>个人中心</el-dropdown-item>
-            </router-link>
-            <el-dropdown-item command="setLayout" v-if="settingsStore.showSettings">
-                <span>布局设置</span>
-              </el-dropdown-item>
-            <el-dropdown-item divided command="logout">
-              <span>退出登录</span>
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ElMessageBox } from 'element-plus'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
 import TopBar from './TopBar'
@@ -77,31 +54,6 @@ const settingsStore = useSettingsStore()
 
 function toggleSideBar() {
   appStore.toggleSideBar()
-}
-
-function handleCommand(command) {
-  switch (command) {
-    case "setLayout":
-      setLayout()
-      break
-    case "logout":
-      logout()
-      break
-    default:
-      break
-  }
-}
-
-function logout() {
-  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    userStore.logOut().then(() => {
-      location.href = '/index'
-    })
-  }).catch(() => { })
 }
 
 const emits = defineEmits(['setLayout'])
@@ -155,6 +107,7 @@ async function toggleTheme(event) {
   .hamburger-container {
     display: none !important;
   }
+  overflow: visible;
 }
 
 .navbar {
@@ -185,6 +138,11 @@ async function toggleTheme(event) {
   }
 
   .breadcrumb-container {
+    flex-shrink: 0;
+  }
+
+  .header-search-left {
+    margin-right: 12px;
     flex-shrink: 0;
   }
 

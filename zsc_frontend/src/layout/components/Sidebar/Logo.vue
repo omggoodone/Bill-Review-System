@@ -2,11 +2,10 @@
   <div class="sidebar-logo-container" :class="{ 'collapse': collapse }">
     <transition name="sidebarLogoFade">
       <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
-        <img v-if="logo" :src="logo" class="sidebar-logo" />
-        <h1 v-else class="sidebar-title">{{ title }}</h1>
+        <img :src="logo" class="sidebar-logo" />
       </router-link>
       <router-link v-else key="expand" class="sidebar-logo-link" to="/">
-        <img v-if="logo" :src="logo" class="sidebar-logo" />
+        <img :src="logo" class="sidebar-logo" />
         <h1 class="sidebar-title">{{ title }}</h1>
       </router-link>
     </transition>
@@ -14,8 +13,9 @@
 </template>
 
 <script setup>
-import logo from '@/assets/logo/logo.png'
+import logo from '@/assets/logo/logo.svg'
 import useSettingsStore from '@/store/modules/settings'
+import useUserStore from '@/store/modules/user'
 import variables from '@/assets/styles/variables.module.scss'
 
 defineProps({
@@ -25,7 +25,13 @@ defineProps({
   }
 })
 
-const title = import.meta.env.VITE_APP_TITLE
+const userStore = useUserStore()
+const title = computed(() => {
+  if (userStore.roles.includes('admin')) {
+    return '票据管理后台'
+  }
+  return '票据报销系统'
+})
 const settingsStore = useSettingsStore()
 const sideTheme = computed(() => settingsStore.sideTheme)
 
@@ -67,7 +73,8 @@ const getLogoTextColor = computed(() => {
   height: 50px;
   line-height: 50px;
   background: v-bind(getLogoBackground);
-  text-align: center;
+  text-align: left;
+  padding-left: 20px;
   overflow: hidden;
 
   & .sidebar-logo-link {
@@ -94,6 +101,9 @@ const getLogoTextColor = computed(() => {
   }
 
   &.collapse {
+    text-align: center;
+    padding-left: 0;
+
     .sidebar-logo {
       margin-right: 0px;
     }

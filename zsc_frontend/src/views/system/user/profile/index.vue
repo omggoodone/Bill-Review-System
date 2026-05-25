@@ -39,6 +39,9 @@
                      </li>
                   </ul>
                </div>
+               <div style="text-align: center; margin-top: 16px;">
+                  <el-button type="danger" @click="handleLogout">退出登录</el-button>
+               </div>
             </el-card>
          </el-col>
          <el-col :span="18" :xs="24">
@@ -66,9 +69,12 @@
 import userAvatar from "./userAvatar"
 import userInfo from "./userInfo"
 import resetPwd from "./resetPwd"
+import { ElMessageBox } from 'element-plus'
+import useUserStore from '@/store/modules/user'
 import { getUserProfile } from "@/api/system/user"
 
 const route = useRoute()
+const userStore = useUserStore()
 const selectedTab = ref("userinfo")
 const state = reactive({
   user: {},
@@ -82,6 +88,18 @@ function getUser() {
     state.roleGroup = response.roleGroup
     state.postGroup = response.postGroup
   })
+}
+
+function handleLogout() {
+  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    userStore.logOut().then(() => {
+      location.href = '/login'
+    })
+  }).catch(() => { })
 }
 
 onMounted(() => {

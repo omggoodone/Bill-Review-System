@@ -223,11 +223,11 @@ function toLastView(visitedViews, view) {
   } else {
     // now the default is to redirect to the home page if there is no tags-view,
     // you can adjust it according to your needs.
-    if (view.name === 'Dashboard') {
+    if (view.name === 'Dashboard' || view.name === 'Manage') {
       // to reload home page
       router.replace({ path: '/redirect' + view.fullPath })
     } else {
-      router.push('/')
+      router.push('/bill/manage')
     }
   }
 }

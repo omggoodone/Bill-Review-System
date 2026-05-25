@@ -1,7 +1,10 @@
 <template>
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">{{ title }}</h3>
+      <div class="login-logo">
+        <img src="@/assets/logo/logo.svg" alt="logo" />
+        <h3 class="title">票据报销系统</h3>
+      </div>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
@@ -69,10 +72,8 @@ import { getCodeImg } from "@/api/login"
 import Cookies from "js-cookie"
 import { encrypt, decrypt } from "@/utils/jsencrypt"
 import useUserStore from '@/store/modules/user'
-import defaultSettings from '@/settings'
 
-const title = import.meta.env.VITE_APP_TITLE
-const footerContent = defaultSettings.footerContent
+const footerContent = 'Copyright © 2026 票据报销系统. All Rights Reserved.'
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
@@ -97,7 +98,7 @@ const loading = ref(false)
 // 验证码开关
 const captchaEnabled = ref(true)
 // 注册开关
-const register = ref(false)
+const register = ref(true)
 const redirect = ref(undefined)
 
 watch(route, (newRoute) => {
@@ -174,10 +175,21 @@ getCookie()
   background-image: url("../assets/images/login-background.jpg");
   background-size: cover;
 }
-.title {
-  margin: 0px auto 30px auto;
+.login-logo {
   text-align: center;
-  color: #707070;
+  margin-bottom: 30px;
+}
+.login-logo img {
+  width: 64px;
+  height: 64px;
+  display: block;
+  margin: 0 auto 12px;
+}
+.title {
+  margin: 0;
+  text-align: center;
+  color: #444;
+  font-size: 22px;
 }
 
 .login-form {

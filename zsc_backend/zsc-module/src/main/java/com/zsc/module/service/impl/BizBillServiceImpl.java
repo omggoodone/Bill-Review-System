@@ -17,6 +17,7 @@ import com.zsc.module.domain.vo.BizAuditLogVo;
 import com.zsc.module.domain.vo.BizBillDetailVo;
 import com.zsc.module.domain.vo.BizBillFileVo;
 import com.zsc.module.domain.vo.BizBillVo;
+import com.zsc.module.domain.vo.TrendItemVo;
 import com.zsc.module.mapper.BizAuditLogMapper;
 import com.zsc.module.mapper.BizBillFileMapper;
 import com.zsc.module.mapper.BizBillMapper;
@@ -29,7 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,15 +74,16 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         bill.setCreateBy(SecurityUtils.getUsername());
         bill.setCreateTime(new Date());
 
-        // 草稿生成临时编号，防止 NOT NULL 约束报错；提交时替换为正式编号
-        if ("1".equals(dto.getStatus())) {
-            bill.setBillNo(generateBillNo());
-        } else {
-            bill.setBillNo("DRAFT-" + System.currentTimeMillis());
-        }
+        // 先保存草稿（用临时编号占位），再根据状态替换为正式编号
+        bill.setBillNo("DRAFT-" + System.currentTimeMillis());
 
         if (!this.save(bill)) {
             throw new ServiceException("系统错误，票据保存失败！");
+        }
+
+        if ("1".equals(dto.getStatus())) {
+            bill.setBillNo(generateBillNo(bill.getId()));
+            this.updateById(bill);
         }
 
         // 保存附件记录
@@ -97,8 +102,14 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         }
 
         // 条件过滤
-        wrapper.like(StringUtils.isNotBlank(dto.getKeywords()), BizBill::getTitle, dto.getKeywords())
-               .eq(dto.getCategoryId() != null, BizBill::getCategoryId, dto.getCategoryId())
+        if (StringUtils.isNotBlank(dto.getKeywords())) {
+            wrapper.and(w -> w
+                .like(BizBill::getTitle, dto.getKeywords())
+                .or()
+                .like(BizBill::getBillNo, dto.getKeywords())
+            );
+        }
+        wrapper.eq(dto.getCategoryId() != null, BizBill::getCategoryId, dto.getCategoryId())
                .eq(StringUtils.isNotBlank(dto.getStatus()), BizBill::getStatus, dto.getStatus())
                .ge(StringUtils.isNotBlank(dto.getStartTime()), BizBill::getCreateTime, dto.getStartTime())
                .le(StringUtils.isNotBlank(dto.getEndTime()), BizBill::getCreateTime, dto.getEndTime())
@@ -241,9 +252,9 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
             throw new ServiceException("只能提交自己的票据！");
         }
 
-        // 草稿有临时编号的，替换为正式编号
+        // 草稿有临时编号的，替换为正式编号（用主键ID保证并发唯一）
         if (StringUtils.isBlank(bill.getBillNo()) || bill.getBillNo().startsWith("DRAFT-")) {
-            bill.setBillNo(generateBillNo());
+            bill.setBillNo(generateBillNo(bill.getId()));
         }
 
         bill.setStatus("1");
@@ -376,26 +387,78 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     }
 
     /**
-     * 生成票据编号: BILL-yyyyMMdd-NNNN
-     * 查询当日最大编号，序号递增
+     * 生成票据编号: BILL-yyyyMMdd-{billId}
+     * 使用票据主键ID保证并发安全，避免批量提交时编号重复
      */
-    private String generateBillNo() {
+    private String generateBillNo(Long billId) {
         String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        String prefix = "BILL-" + dateStr + "-";
+        return String.format("BILL-%s-%04d", dateStr, billId);
+    }
 
-        // 查询当日最后一条编号
-        BizBill latest = this.getOne(new LambdaQueryWrapper<BizBill>()
-            .likeRight(BizBill::getBillNo, prefix)
-            .orderByDesc(BizBill::getBillNo)
-            .last("LIMIT 1"), false);
+    @Override
+    public List<TrendItemVo> getMonthlyTrend() {
+        Calendar now = Calendar.getInstance();
+        int year = now.get(Calendar.YEAR);
+        int month = now.get(Calendar.MONTH) + 1;
 
-        int seq = 1;
-        if (latest != null && StringUtils.isNotBlank(latest.getBillNo())) {
-            String[] parts = latest.getBillNo().split("-");
-            seq = Integer.parseInt(parts[2]) + 1;
+        Calendar start = Calendar.getInstance();
+        start.set(year, month - 1, 1, 0, 0, 0);
+        String startStr = new SimpleDateFormat("yyyy-MM-dd").format(start.getTime());
+        String endStr = new SimpleDateFormat("yyyy-MM-dd").format(now.getTime());
+
+        LambdaQueryWrapper<BizBill> trendWrapper = new LambdaQueryWrapper<BizBill>()
+            .ge(BizBill::getUpdateTime, startStr)
+            .le(BizBill::getUpdateTime, endStr)
+            .ne(BizBill::getStatus, "0");
+        if (!SecurityUtils.hasPermi("biz:bill:review")) {
+            trendWrapper.eq(BizBill::getCreateBy, SecurityUtils.getUsername());
+        }
+        List<BizBill> bills = this.list(trendWrapper);
+
+        Map<String, Long> weekMap = new LinkedHashMap<>();
+        for (int i = 1; i <= 4; i++) {
+            weekMap.put("第" + i + "周", 0L);
         }
 
-        return String.format("BILL-%s-%04d", dateStr, seq);
+        for (BizBill bill : bills) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(bill.getUpdateTime());
+            int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
+            String weekLabel = "第" + ((dayOfMonth - 1) / 7 + 1) + "周";
+            weekMap.merge(weekLabel, 1L, Long::sum);
+        }
+
+        List<TrendItemVo> result = new ArrayList<>();
+        weekMap.forEach((label, count) -> result.add(new TrendItemVo(label, count)));
+        return result;
+    }
+
+    @Override
+    public List<TrendItemVo> getCategoryAmountSummary() {
+        LambdaQueryWrapper<BizBill> wrapper = new LambdaQueryWrapper<BizBill>()
+            .eq(BizBill::getStatus, "2");
+        if (!SecurityUtils.hasPermi("biz:bill:review")) {
+            wrapper.eq(BizBill::getCreateBy, SecurityUtils.getUsername());
+        }
+        List<BizBill> bills = this.list(wrapper);
+
+        Map<Long, Long> amountMap = new LinkedHashMap<>();
+        Map<Long, String> nameMap = new LinkedHashMap<>();
+
+        for (BizBill bill : bills) {
+            Long cid = bill.getCategoryId();
+            if (cid != null) {
+                amountMap.merge(cid, bill.getAmount() != null ? bill.getAmount().longValue() : 0L, Long::sum);
+                if (!nameMap.containsKey(cid)) {
+                    BizCategory cat = categoryMapper.selectById(cid);
+                    nameMap.put(cid, cat != null ? cat.getCategoryName() : "未知");
+                }
+            }
+        }
+
+        return amountMap.entrySet().stream()
+            .map(e -> new TrendItemVo(nameMap.getOrDefault(e.getKey(), "未知"), e.getValue()))
+            .collect(Collectors.toList());
     }
 
 }
