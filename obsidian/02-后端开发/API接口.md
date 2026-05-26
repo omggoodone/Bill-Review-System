@@ -126,6 +126,23 @@ created: "2026-05-23"
 | 缓存监控 | `/monitor/cache` | getCache, listCacheName, listCacheKey, getCacheValue, clear* |
 | 服务监控 | `/monitor/server` | getServer (CPU/JVM/内存/磁盘) |
 
+## 业务接口 `/api/register-request`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | `/api/register-request` | 提交注册申请（邮箱+说明+角色） | 匿名 |
+
+## 管理员接口 `/api/admin`
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/stats` | 管理概览统计（用户数/审核员数/票据数） | `biz:admin:list` |
+| GET | `/users` | 用户列表（含角色，支持筛选） | `system:user:list` |
+| GET | `/roles` | 全部角色列表 | `system:user:list` |
+| GET | `/register-requests` | 待审核注册申请列表 | `biz:admin:list` |
+| POST | `/register-requests/{id}/approve` | 通过注册申请（生成账号密码） | `biz:admin:list` |
+| POST | `/register-requests/{id}/reject` | 拒绝注册申请 | `biz:admin:list` |
+
 ## 业务接口 `/api/category`
 
 | 方法 | 路径 | 说明 | 权限 |
@@ -140,8 +157,11 @@ created: "2026-05-23"
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
-| POST | `/query` | 分页查询票据列表（普通用户只看自己） | `biz:bill:list` |
-| GET | `/{id}` | 票据详情（含附件列表 + 审核历史） | `biz:bill:query` |
+| POST | `/query` | 分页查询票据列表（普通用户只看自己；支持提交人/类别/金额范围筛选） | `biz:bill:list` |
+| GET | `/reviewer-stats` | 审核员仪表盘统计数据 | `biz:bill:list` |
+| GET | `/trend` | 月度趋势统计（ECharts 折线图） | `biz:bill:list` |
+| GET | `/category-summary` | 类别金额汇总（ECharts 柱状图） | `biz:bill:list` |
+| GET | `/{id}` | 票据详情（含附件 + 审核历史） | `biz:bill:query` |
 | POST | — | 新增票据（status=0 草稿 / status=1 提交） | `biz:bill:add` |
 | PUT | — | 修改票据（仅草稿或已退回状态） | `biz:bill:add` |
 | POST | `/submit/{id}` | 提交草稿进入审核流程 | `biz:bill:add` |
