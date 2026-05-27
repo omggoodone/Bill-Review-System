@@ -2,13 +2,13 @@
   <div class="login">
 
     <!-- 初始化表单 -->
-    <el-form v-if="!initialized" ref="initRef" :model="initForm" class="login-form">
+    <el-form v-if="!initialized" ref="initRef" :model="initForm" :rules="initRules" class="login-form">
       <div class="login-logo">
         <img src="@/assets/logo/logo.svg" alt="logo" />
         <h3 class="title">系统初始化</h3>
       </div>
       <el-form-item prop="email">
-        <el-input v-model="initForm.email" type="email" size="large" auto-complete="off" placeholder="请输入管理员邮箱">
+        <el-input v-model="initForm.email" type="email" size="large" auto-complete="off" placeholder="请输入超级管理员邮箱">
           <template #prefix><svg-icon icon-class="email" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
@@ -124,6 +124,12 @@ const register = ref(true)
 const initialized = ref(true)
 const initLoading = ref(false)
 const initForm = ref({ email: '' })
+const initRules = {
+  email: [
+    { required: true, trigger: 'blur', message: '请输入邮箱' },
+    { pattern: /^\S+@\S+\.\S+$/, trigger: 'blur', message: '邮箱格式不正确' }
+  ]
+}
 const redirect = ref(undefined)
 
 watch(route, (newRoute) => {
@@ -188,10 +194,11 @@ function getCookie() {
 }
 
 function handleInit() {
-  const email = initForm.value.email.trim()
-  if (!email) { proxy.$modal.msgWarning('请输入管理员邮箱'); return }
-  initLoading.value = true
-  initSystem({ email }).then(res => {
+  proxy.$refs.initRef.validate(valid => {
+    if (!valid) return
+    const email = initForm.value.email.trim()
+    initLoading.value = true
+    initSystem({ email }).then(res => {
     proxy.$alert(
       `<div style="line-height:2;">
         <p>用户名：<b>${res.data.userName}</b></p>
@@ -204,7 +211,8 @@ function handleInit() {
       initialized.value = true
       getCode()
     })
-  }).finally(() => { initLoading.value = false })
+    }).finally(() => { initLoading.value = false })
+  })
 }
 
 getInitStatus().then(res => {

@@ -1,55 +1,58 @@
 <template>
   <div class="app-container">
-    <!-- 搜索表单 -->
-    <el-form :model="queryParams" ref="queryFormRef" :inline="true" class="search-form">
-      <el-form-item prop="keywords">
-        <template #label><svg-icon icon-class="search" /></template>
-        <el-input v-model="queryParams.keywords" placeholder="票据编号/标题" clearable style="width: 160px" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item prop="createBy">
-        <template #label><svg-icon icon-class="submitter" /></template>
-        <el-input v-model="queryParams.createBy" placeholder="提交人" clearable style="width: 110px" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item prop="categoryId">
-        <template #label><svg-icon icon-class="category" /></template>
-        <el-select v-model="queryParams.categoryId" placeholder="类别" clearable style="width: 120px">
-          <el-option v-for="cat in categoryOptions" :key="cat.categoryId" :label="cat.categoryName" :value="cat.categoryId" />
-        </el-select>
-      </el-form-item>
-      <el-form-item prop="minAmount">
-        <template #label><svg-icon icon-class="amount" /></template>
-        <el-input v-model="queryParams.minAmount" placeholder="最低" clearable style="width: 80px" @keyup.enter="handleQuery" />
-        <span style="margin: 0 4px; color: #909399;">—</span>
-        <el-input v-model="queryParams.maxAmount" placeholder="最高" clearable style="width: 80px" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item prop="dateRange">
-        <template #label><svg-icon icon-class="date-range" /></template>
-        <el-date-picker v-model="dateRange" type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width: 200px" />
-      </el-form-item>
-      <el-form-item>
-        <el-button :type="staleOnly ? 'warning' : ''" circle @click="staleOnly = !staleOnly; handleQuery()">
-          <svg-icon icon-class="stale" />
-        </el-button>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" circle @click="handleQuery" />
-        <el-button type="primary" circle @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
-      </el-form-item>
-    </el-form>
-
+    <!-- 工具栏行：批量按钮 + 搜索表单 -->
+    <div class="toolbar-row">
+      <el-button type="success" plain icon="Select" :disabled="ids.length === 0" @click="handleBatchReview('1')">批量通过</el-button>
+      <el-button type="danger" plain icon="CloseBold" :disabled="ids.length === 0" style="margin-right: 16px;" @click="handleBatchReview('2')">批量退回</el-button>
+      <el-form :model="queryParams" ref="queryFormRef" :inline="true" class="search-form">
+        <el-form-item prop="keywords">
+          <template #label><svg-icon icon-class="search" /></template>
+          <el-input v-model="queryParams.keywords" placeholder="编号/标题" clearable style="width: 130px" @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item prop="createBy">
+          <template #label><svg-icon icon-class="submitter" /></template>
+          <el-input v-model="queryParams.createBy" placeholder="提交人" clearable style="width: 90px" @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item prop="categoryId">
+          <template #label><svg-icon icon-class="category" /></template>
+          <el-select v-model="queryParams.categoryId" placeholder="类别" clearable style="width: 100px">
+            <el-option v-for="cat in categoryOptions" :key="cat.categoryId" :label="cat.categoryName" :value="cat.categoryId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item prop="minAmount">
+          <template #label><svg-icon icon-class="amount" /></template>
+          <el-input v-model="queryParams.minAmount" placeholder="最低" clearable style="width: 70px" @keyup.enter="handleQuery" />
+          <span style="margin: 0 2px; color: #909399;">-</span>
+          <el-input v-model="queryParams.maxAmount" placeholder="最高" clearable style="width: 70px" @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item prop="dateRange">
+          <el-date-picker v-model="dateRange" type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width: 200px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button :type="staleOnly ? 'warning' : ''" circle @click="staleOnly = !staleOnly; handleQuery()">
+            <svg-icon icon-class="stale" />
+          </el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="Search" circle @click="handleQuery" />
+          <el-button type="primary" circle @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
+        </el-form-item>
+      </el-form>
+    </div>
 
     <!-- 审核列表 -->
-    <el-table v-loading="loading" :data="billList">
+    <el-table v-loading="loading" :data="billList" @sort-change="handleSortChange" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="票据编号" align="center" prop="billNo" :show-overflow-tooltip="true" min-width="160" />
       <el-table-column label="标题" align="center" prop="title" :show-overflow-tooltip="true" min-width="180" />
       <el-table-column label="类别" align="center" prop="categoryName" width="100" />
-      <el-table-column label="金额" align="center" prop="amount" width="120">
+      <el-table-column label="金额" align="center" prop="amount" width="120" sortable="custom">
         <template #default="scope">
           <span>{{ formatAmount(scope.row.amount) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="提交人" align="center" prop="createBy" width="100" />
-      <el-table-column label="提交时间" align="center" prop="createTime" width="160">
+      <el-table-column label="提交时间" align="center" prop="createTime" width="160" sortable="custom">
         <template #default="scope">
           <span :class="{ 'stale-time': isStale(scope.row.createTime) }">{{ parseTime(scope.row.createTime) }}</span>
         </template>
@@ -118,7 +121,7 @@
 </template>
 
 <script setup name="BizBillReview">
-import { listBill, getBill, reviewBill } from "@/api/biz/bill"
+import { listBill, getBill, reviewBill, batchReview } from "@/api/biz/bill"
 import { listBizCategory } from "@/api/biz/bizCategory"
 import BillForm from "@/views/biz/bill/components/BillForm.vue"
 
@@ -128,6 +131,9 @@ const { biz_bill_status } = proxy.useDict('biz_bill_status')
 const billList = ref([])
 const allList = ref([])
 const staleOnly = ref(false)
+const sortField = ref(undefined)
+const sortOrder = ref(undefined)
+const ids = ref([])
 const loading = ref(true)
 const total = ref(0)
 const dateRange = ref([])
@@ -169,14 +175,39 @@ function getList() {
   loading.value = true
   queryParams.value.startTime = dateRange.value ? dateRange.value[0] : undefined
   queryParams.value.endTime = dateRange.value ? dateRange.value[1] : undefined
+  queryParams.value.sortField = sortField.value || undefined
+  queryParams.value.sortOrder = sortOrder.value || undefined
   listBill(queryParams.value).then(response => {
     allList.value = response.data.list
     total.value = response.data.total
+    ids.value = []
     billList.value = staleOnly.value
       ? allList.value.filter(b => isStale(b.createTime))
       : allList.value
     loading.value = false
   })
+}
+
+function handleSelectionChange(selection) {
+  ids.value = selection.map(item => item.id)
+}
+
+function handleBatchReview(action) {
+  const label = action === '1' ? '通过' : '退回'
+  proxy.$modal.confirm(`确认批量${label}选中的 ${ids.value.length} 条票据吗？`).then(() => {
+    const comment = action === '1' ? '允许报销' : '不允许报销'
+    batchReview({ ids: ids.value, action, comment }).then(res => {
+      proxy.$modal.msgSuccess(res.msg || `批量${label}完成`)
+      ids.value = []
+      getList()
+    })
+  })
+}
+
+function handleSortChange({ prop, order }) {
+  sortField.value = prop
+  sortOrder.value = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : undefined
+  getList()
 }
 
 function handleQuery() {
@@ -241,11 +272,13 @@ getList()
 </script>
 
 <style scoped>
-.search-form {
-  margin-bottom: 16px;
+.toolbar-row {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
 .search-form :deep(.el-form-item) {
-  margin-right: 8px;
+  margin-right: 4px;
   margin-bottom: 0;
 }
 .search-form :deep(.el-form-item__label) {

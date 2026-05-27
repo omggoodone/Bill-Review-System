@@ -5,7 +5,7 @@ export function getAdminStats() {
   return request({ url: '/api/admin/stats', method: 'get' })
 }
 
-// 查询用户列表（含角色信息）
+// 查询用户列表（含角色信息，分页）
 export function listUser(query) {
   return request({ url: '/api/admin/users', method: 'get', params: query })
 }

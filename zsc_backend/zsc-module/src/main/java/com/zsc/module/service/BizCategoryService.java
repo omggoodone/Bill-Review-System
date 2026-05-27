@@ -27,6 +27,11 @@ public interface BizCategoryService extends IService<BizCategory> {
     void updateCategory(BizCategoryDto updateDto);
 
     /**
+     * 删除类别，将关联票据归类到"其他"
+     */
+    void deleteCategory(Long id);
+
+    /**
      * 复杂条件查询，包含分页信息
      */
     PageResult queryCategories(BizCategoryQueryDto queryDto);

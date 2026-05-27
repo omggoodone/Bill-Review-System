@@ -254,6 +254,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		<if test="status != null and status != ''">
 			and u.status = #{status}
 		</if>
+		<if test="excludeRoleKey != null and excludeRoleKey != ''">
+			and r.role_key != #{excludeRoleKey}
+		</if>
 		order by u.create_time desc
 	</select>
 </mapper>

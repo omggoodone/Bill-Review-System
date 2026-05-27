@@ -118,7 +118,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
                .le(dto.getMaxAmount() != null, BizBill::getAmount, dto.getMaxAmount())
                .ge(StringUtils.isNotBlank(dto.getStartTime()), BizBill::getCreateTime, dto.getStartTime())
                .le(StringUtils.isNotBlank(dto.getEndTime()), BizBill::getCreateTime, dto.getEndTime())
-               .orderByDesc(BizBill::getCreateTime);
+               .last(buildOrderSql(dto.getSortField(), dto.getSortOrder()));
 
         Page<BizBill> page = this.page(dto.convertToPage(), wrapper);
 
@@ -375,6 +375,18 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     /**
      * 批量查询类别ID对应的类别名称
      */
+    private String buildOrderSql(String sortField, String sortOrder) {
+        if (sortField == null || sortField.isEmpty()) return "ORDER BY create_time DESC";
+        String col = switch (sortField) {
+            case "amount" -> "amount";
+            case "createTime" -> "create_time";
+            case "auditTime" -> "audit_time";
+            default -> "create_time";
+        };
+        String dir = "desc".equalsIgnoreCase(sortOrder) ? "DESC" : "ASC";
+        return "ORDER BY " + col + " " + dir;
+    }
+
     private Map<Long, String> buildCategoryNameMap(List<BizBill> bills) {
         List<Long> categoryIds = bills.stream()
             .map(BizBill::getCategoryId)

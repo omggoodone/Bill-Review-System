@@ -7,7 +7,7 @@
           <div class="stat-content">
             <div class="stat-icon total-icon"><el-icon :size="28"><User /></el-icon></div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.totalUsers }}</div>
+              <div class="stat-value">{{ stats.userCount + stats.reviewerCount }}</div>
               <div class="stat-label">总用户</div>
             </div>
           </div>
@@ -35,17 +35,9 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-content">
-            <div class="stat-icon admin-icon"><el-icon :size="28"><Setting /></el-icon></div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.adminCount }}</div>
-              <div class="stat-label">管理员</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="dashboard-stats">
       <el-col :xs="12" :sm="12" :md="6">
         <el-card class="stat-card" shadow="hover">
           <div class="stat-content">
@@ -170,7 +162,7 @@
 
 <script setup>
 import { ref, getCurrentInstance, onMounted, nextTick } from 'vue'
-import { User, UserFilled, Checked, Setting, Document, Clock, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { User, UserFilled, Checked, Document, Clock, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useRouter } from 'vue-router'
 import useSettingsStore from '@/store/modules/settings'
@@ -210,8 +202,7 @@ function initRoleChart() {
       label: { color: dark ? '#ccc' : '#333' },
       data: [
         { value: stats.value.userCount, name: '普通用户', itemStyle: { color: '#4facfe' } },
-        { value: stats.value.reviewerCount, name: '审核员', itemStyle: { color: '#43e97b' } },
-        { value: stats.value.adminCount, name: '管理员', itemStyle: { color: '#fa709a' } }
+        { value: stats.value.reviewerCount, name: '审核员', itemStyle: { color: '#43e97b' } }
       ].filter(d => d.value > 0),
       emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
     }]

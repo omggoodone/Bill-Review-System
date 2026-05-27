@@ -152,7 +152,9 @@ public interface SysUserMapper
 
     int countUserByRoleKey(@Param("roleKey") String roleKey);
 
-    List<SysUser> selectUserWithRoles(@Param("userName") String userName,
+    List<SysUser> selectUserWithRoles(Page<SysUser> page,
+                                     @Param("userName") String userName,
                                      @Param("roleKey") String roleKey,
-                                     @Param("status") String status);
+                                     @Param("status") String status,
+                                     @Param("excludeRoleKey") String excludeRoleKey);
 }

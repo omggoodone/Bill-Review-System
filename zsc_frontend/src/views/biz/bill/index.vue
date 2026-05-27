@@ -1,25 +1,29 @@
 <template>
   <div class="app-container">
-    <!-- Tab 栏 + 搜索表单 -->
-    <div class="tab-search-row">
-      <el-tabs v-model="activeStatus" @tab-change="handleStatusTabChange" class="status-tabs">
-        <el-tab-pane label="全部" name="" />
-        <el-tab-pane v-for="dict in biz_bill_status" :key="dict.value" :label="dict.label" :name="dict.value" />
-      </el-tabs>
-      <el-form :model="queryParams" v-show="showSearch" :inline="true" class="search-inline-form">
+    <!-- Tab 栏 -->
+    <el-tabs v-model="activeStatus" @tab-change="handleStatusTabChange" class="status-tabs">
+      <el-tab-pane label="全部" name="" />
+      <el-tab-pane v-for="dict in biz_bill_status" :key="dict.value" :label="dict.label" :name="dict.value" />
+    </el-tabs>
+
+    <!-- 工具栏行：操作按钮 + 搜索表单 -->
+    <div class="toolbar-row">
+      <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['biz:bill:add']">新增</el-button>
+      <el-button type="warning" plain icon="Upload" :disabled="ids.length === 0" @click="handleBatchSubmit" v-hasPermi="['biz:bill:add']">批量提交</el-button>
+      <el-button type="danger" plain icon="Delete" :disabled="ids.length === 0" style="margin-right: 16px;" @click="handleBatchDelete" v-hasPermi="['biz:bill:remove']">批量删除</el-button>
+      <el-form :model="queryParams" :inline="true" class="search-form">
         <el-form-item prop="keywords">
-          <template #label><svg-icon icon-class="bill-no" /></template>
-          <el-input v-model="queryParams.keywords" placeholder="票据编号/标题" clearable style="width: 160px" @keyup.enter="handleQuery" />
+          <template #label><svg-icon icon-class="search" /></template>
+          <el-input v-model="queryParams.keywords" placeholder="编号/标题" clearable style="width: 130px" @keyup.enter="handleQuery" />
         </el-form-item>
         <el-form-item prop="categoryId">
           <template #label><svg-icon icon-class="category" /></template>
-          <el-select v-model="queryParams.categoryId" placeholder="类别" clearable style="width: 120px">
+          <el-select v-model="queryParams.categoryId" placeholder="类别" clearable style="width: 100px">
             <el-option v-for="cat in categoryOptions" :key="cat.categoryId" :label="cat.categoryName" :value="cat.categoryId" />
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <template #label><svg-icon icon-class="date" /></template>
-          <el-date-picker v-model="dateRange" type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width: 180px" />
+        <el-form-item prop="dateRange">
+          <el-date-picker v-model="dateRange" type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width: 200px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="Search" circle @click="handleQuery" />
@@ -28,51 +32,13 @@
       </el-form>
     </div>
 
-    <!-- 工具栏 -->
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['biz:bill:add']"
-        >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Upload"
-          :disabled="ids.length === 0"
-          @click="handleBatchSubmit"
-          v-hasPermi="['biz:bill:add']"
-        >批量提交</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="ids.length === 0"
-          @click="handleBatchDelete"
-          v-hasPermi="['biz:bill:remove']"
-        >批量删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-tooltip effect="dark" :content="showSearch ? '隐藏搜索' : '显示搜索'" placement="top">
-          <el-button circle icon="Search" @click="showSearch = !showSearch" />
-        </el-tooltip>
-      </el-col>
-    </el-row>
-
     <!-- 表格 -->
-    <el-table v-loading="loading" :data="billList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="billList" @selection-change="handleSelectionChange" @sort-change="handleSortChange">
       <el-table-column type="selection" width="55" align="center" :selectable="checkSelectable" />
       <el-table-column label="票据编号" align="center" prop="billNo" :show-overflow-tooltip="true" min-width="160" />
       <el-table-column label="标题" align="center" prop="title" :show-overflow-tooltip="true" min-width="180" />
       <el-table-column label="类别" align="center" prop="categoryName" width="100" />
-      <el-table-column label="金额" align="center" prop="amount" width="120">
+      <el-table-column label="金额" align="center" prop="amount" width="120" sortable="custom">
         <template #default="scope">
           <span>{{ formatAmount(scope.row.amount) }}</span>
         </template>
@@ -83,13 +49,13 @@
         </template>
       </el-table-column>
       <el-table-column label="创建人" align="center" prop="createBy" width="100" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="160">
+      <el-table-column label="创建时间" align="center" prop="createTime" width="160" sortable="custom">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="审批人" align="center" prop="auditBy" width="100" />
-      <el-table-column label="审批时间" align="center" prop="auditTime" width="160">
+      <el-table-column label="审批时间" align="center" prop="auditTime" width="160" sortable="custom">
         <template #default="scope">
           <span>{{ parseTime(scope.row.auditTime) }}</span>
         </template>
@@ -174,7 +140,6 @@ const billList = ref([])
 const open = ref(false)
 const reviewOpen = ref(false)
 const loading = ref(true)
-const showSearch = ref(true)
 const total = ref(0)
 const title = ref("")
 const isDetail = ref(false)
@@ -198,6 +163,8 @@ const categoryOptions = ref([])
 const billFormRef = ref(null)
 const reviewFormRef = ref(null)
 const ids = ref([])
+const sortField = ref(undefined)
+const sortOrder = ref(undefined)
 
 const reviewForm = ref({
   billId: undefined,
@@ -262,7 +229,9 @@ function getList() {
     categoryId: queryParams.value.categoryId || undefined,
     status: queryParams.value.status || undefined,
     startTime: dateRange.value?.[0] || undefined,
-    endTime: dateRange.value?.[1] || undefined
+    endTime: dateRange.value?.[1] || undefined,
+    sortField: sortField.value || undefined,
+    sortOrder: sortOrder.value || undefined
   }
   listBill(params, abortController.signal).then(response => {
     billList.value = response.data.list
@@ -300,6 +269,13 @@ function resetQuery() {
 function handleStatusTabChange(tabName) {
   queryParams.value.status = tabName || undefined
   handleQuery()
+}
+
+/** 排序变化 */
+function handleSortChange({ prop, order }) {
+  sortField.value = prop
+  sortOrder.value = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : undefined
+  getList()
 }
 
 /** 多选 */
@@ -450,26 +426,22 @@ getList()
 </script>
 
 <style scoped>
-.tab-search-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
 .status-tabs :deep(.el-tabs__header) {
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
 .status-tabs :deep(.el-tabs__nav-wrap::after) {
   display: none;
 }
-.search-inline-form {
-  margin-left: auto;
-  flex-shrink: 0;
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
-.search-inline-form :deep(.el-form-item) {
-  margin-right: 8px;
+.search-form :deep(.el-form-item) {
+  margin-right: 4px;
   margin-bottom: 0;
 }
-.search-inline-form :deep(.el-form-item__label) {
+.search-form :deep(.el-form-item__label) {
   display: flex;
   align-items: center;
 }

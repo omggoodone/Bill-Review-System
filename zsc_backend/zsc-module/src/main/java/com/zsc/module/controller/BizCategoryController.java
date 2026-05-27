@@ -72,9 +72,8 @@ public class BizCategoryController {
     @Log(title = "业务类别管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public ResultVo delete(@PathVariable @Min(value = 1, message = "类别ID不能小于1") long id) {
-        return bizCategoryService.removeById(id)
-                ? ResultVo.ok("删除成功")
-                : ResultVo.fail("数据不存在，删除失败");
+        bizCategoryService.deleteCategory(id);
+        return ResultVo.ok("删除成功");
     }
 
     /**

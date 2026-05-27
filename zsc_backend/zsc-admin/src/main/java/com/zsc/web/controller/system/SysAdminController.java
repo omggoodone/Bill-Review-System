@@ -72,9 +72,17 @@ public class SysAdminController extends BaseController {
     @GetMapping("/users")
     public AjaxResult users(@RequestParam(required = false) String userName,
                               @RequestParam(required = false) String roleKey,
-                              @RequestParam(required = false) String status) {
-        List<SysUser> users = userMapper.selectUserWithRoles(userName, roleKey, status);
-        return success(users);
+                              @RequestParam(required = false) String status,
+                              @RequestParam(required = false) String excludeRoleKey,
+                              @RequestParam(defaultValue = "1") int currentPage,
+                              @RequestParam(defaultValue = "10") int pageSize) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysUser> page =
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, pageSize);
+        List<SysUser> users = userMapper.selectUserWithRoles(page, userName, roleKey, status, excludeRoleKey);
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", users);
+        data.put("total", page.getTotal());
+        return success(data);
     }
 
     @PreAuthorize("@ss.hasPermi('system:user:list')")
@@ -132,7 +140,9 @@ public class SysAdminController extends BaseController {
     @PreAuthorize("@ss.hasPermi('biz:admin:list')")
     @GetMapping("/user-amount-summary")
     public AjaxResult userAmountSummary() {
-        List<SysUser> normalUsers = userMapper.selectUserWithRoles(null, "user", null);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysUser> bigPage =
+    new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 9999);
+List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user", null, null);
         java.util.Set<String> userNames = normalUsers.stream()
             .map(SysUser::getUserName)
             .collect(Collectors.toSet());

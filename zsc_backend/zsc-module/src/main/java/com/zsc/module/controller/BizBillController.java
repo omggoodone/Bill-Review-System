@@ -23,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 票据控制器
@@ -147,5 +148,30 @@ public class BizBillController {
     public ResultVo review(@Valid @RequestBody BizBillReviewDto dto) {
         bizBillService.reviewBill(dto);
         return ResultVo.ok("审核成功");
+    }
+
+    @Operation(summary = "批量审核票据")
+    @PreAuthorize("@ss.hasPermi('biz:bill:review')")
+    @Log(title = "票据管理", businessType = BusinessType.UPDATE)
+    @PostMapping("/batch-review")
+    public ResultVo batchReview(@RequestBody Map<String, Object> body) {
+        List<Long> ids = ((List<Integer>) body.get("ids")).stream().map(Long::valueOf).toList();
+        String action = (String) body.get("action");
+        if (!"1".equals(action) && !"2".equals(action)) {
+            return ResultVo.fail("无效的审核结果");
+        }
+        String comment = (String) body.getOrDefault("comment", "");
+        int count = 0;
+        for (Long id : ids) {
+            BizBillReviewDto dto = new BizBillReviewDto();
+            dto.setBillId(id);
+            dto.setAction(action);
+            dto.setComment(comment);
+            try {
+                bizBillService.reviewBill(dto);
+                count++;
+            } catch (Exception ignored) {}
+        }
+        return ResultVo.ok("批量审核完成: " + count + "/" + ids.size());
     }
 }

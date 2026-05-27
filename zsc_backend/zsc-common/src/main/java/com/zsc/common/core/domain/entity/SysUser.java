@@ -116,7 +116,13 @@ public class SysUser extends BaseEntity
 
     public boolean isAdmin()
     {
-        return SecurityUtils.isAdmin(this.userId);
+        return isSuperAdmin() || SecurityUtils.isAdmin(this.userId);
+    }
+
+    public boolean isSuperAdmin()
+    {
+        return this.roles != null && this.roles.stream()
+            .anyMatch(r -> "admin".equals(r.getRoleKey()));
     }
 
     public Long getDeptId()

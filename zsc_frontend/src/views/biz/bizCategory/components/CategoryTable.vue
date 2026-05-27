@@ -23,7 +23,7 @@
     </el-row>
 
     <el-table v-loading="loading" :data="categoryList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
+      <el-table-column type="selection" width="55" align="center" :selectable="row => row.categoryName !== '其他'" />
       <el-table-column label="类别ID" align="center" prop="categoryId" width="100" />
       <el-table-column label="类别名称" align="center" prop="categoryName" :show-overflow-tooltip="true" />
       <el-table-column label="排序号" align="center" prop="sortOrder" width="100" />
@@ -44,8 +44,13 @@
       </el-table-column>
       <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['biz:category:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['biz:category:remove']">删除</el-button>
+          <template v-if="scope.row.categoryName === '其他'">
+            <span class="default-tip">默认类别</span>
+          </template>
+          <template v-else>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['biz:category:edit']">修改</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['biz:category:remove']">删除</el-button>
+          </template>
         </template>
       </el-table-column>
     </el-table>
@@ -130,3 +135,7 @@ function handlePagination() {
   emit('pagination')
 }
 </script>
+
+<style scoped>
+.default-tip { color: var(--el-text-color-secondary); font-size: 12px; }
+</style>

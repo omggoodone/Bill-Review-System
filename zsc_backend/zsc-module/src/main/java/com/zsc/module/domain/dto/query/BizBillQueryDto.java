@@ -37,4 +37,10 @@ public class BizBillQueryDto extends BasePageReq {
     /** 金额范围-最大 */
     private Long maxAmount;
 
+    /** 排序字段 */
+    private String sortField;
+
+    /** 排序方向 asc/desc */
+    private String sortOrder;
+
 }

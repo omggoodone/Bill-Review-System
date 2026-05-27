@@ -29,8 +29,8 @@
 
     <!-- 新增管理员弹窗 -->
     <el-dialog v-model="createDialogVisible" title="新增管理员" width="420px" :close-on-click-modal="false">
-      <el-form :model="createForm" label-width="80px">
-        <el-form-item label="邮箱" required>
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="80px">
+        <el-form-item label="邮箱" prop="email">
           <el-input v-model="createForm.email" placeholder="请输入管理员邮箱" />
         </el-form-item>
       </el-form>
@@ -67,6 +67,14 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      v-model:page="queryParams.currentPage"
+      v-model:limit="queryParams.pageSize"
+      @pagination="getList"
+    />
   </div>
 </template>
 
@@ -84,11 +92,19 @@ const isSuperAdmin = computed(() => userStore.roles.includes('admin'))
 
 const userList = ref([])
 const loading = ref(false)
+const total = ref(0)
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
+const createFormRef = ref(null)
 const createForm = reactive({ email: '' })
+const createRules = {
+  email: [
+    { required: true, trigger: 'blur', message: '请输入邮箱' },
+    { pattern: /^\S+@\S+\.\S+$/, trigger: 'blur', message: '邮箱格式不正确' }
+  ]
+}
 
-const queryParams = ref({ userName: undefined, roleKey: undefined, status: undefined })
+const queryParams = ref({ currentPage: 1, pageSize: 10, userName: undefined, roleKey: undefined, status: undefined })
 
 function parseTime(t) { return t ? proxy.parseTime(t) : '-' }
 
@@ -96,9 +112,11 @@ function getList() {
   loading.value = true
   const raw = queryParams.value
   const params = {}
-  // 超管只看管理员账号
+  // 超管只看管理员账号，管理员排除管理员
   if (isSuperAdmin.value) {
     params.roleKey = 'admin_user'
+  } else {
+    params.excludeRoleKey = 'admin_user'
   }
   Object.keys(raw).forEach(k => {
     const v = raw[k]
@@ -107,26 +125,22 @@ function getList() {
     }
   })
   listUser(params).then(res => {
-    let list = res.data || []
-    // 管理员不能看到其他管理员账号
-    if (!isSuperAdmin.value) {
-      list = list.filter(u => u.roles?.[0]?.roleKey !== 'admin_user')
-    }
-    userList.value = list
+    userList.value = res.data.list || []
+    total.value = res.data.total || 0
   }).finally(() => { loading.value = false })
 }
 
-function handleQuery() { getList() }
+function handleQuery() { queryParams.value.currentPage = 1; getList() }
 function resetQuery() {
-  queryParams.value = { userName: undefined, roleKey: undefined, status: undefined }
+  queryParams.value = { currentPage: 1, pageSize: 10, userName: undefined, roleKey: undefined, status: undefined }
   handleQuery()
 }
 
 function handleResetPwd(row) {
-  proxy.$prompt(`请输入「${row.userName}」的新密码（5~20位）`, '重置密码', {
+  proxy.$prompt(`请输入「${row.userName}」的新密码（6~20位）`, '重置密码', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
-    inputValidator: (v) => (v && v.length >= 5 && v.length <= 20) ? true : '密码长度须在5~20位之间'
+    inputValidator: (v) => (v && v.length >= 6 && v.length <= 20) ? true : '密码长度须在6~20位之间'
   }).then(({ value }) => {
     resetUserPwd(row.userId, value).then(() => { proxy.$modal.msgSuccess('密码重置成功'); getList() })
   })
@@ -143,13 +157,15 @@ function handleStatus(row) {
 function openCreateDialog() {
   createForm.email = ''
   createDialogVisible.value = true
+  createFormRef.value?.resetFields()
 }
 
 function handleCreate() {
-  const email = createForm.email.trim()
-  if (!email) { proxy.$modal.msgWarning('请输入邮箱'); return }
-  createLoading.value = true
-  createAdmin({ email }).then(res => {
+  createFormRef.value.validate(valid => {
+    if (!valid) return
+    const email = createForm.email.trim()
+    createLoading.value = true
+    createAdmin({ email }).then(res => {
     createDialogVisible.value = false
     proxy.$alert(
       `<div style="line-height:2;">
@@ -160,8 +176,9 @@ function handleCreate() {
       '管理员账号已创建',
       { dangerouslyUseHTMLString: true, confirmButtonText: '已记录' }
     )
-    getList()
-  }).finally(() => { createLoading.value = false })
+      getList()
+    }).finally(() => { createLoading.value = false })
+  })
 }
 
 function handleDelete(row) {

@@ -77,6 +77,11 @@ export function getReviewerStats() {
   })
 }
 
+// 批量审批票据
+export function batchReview(data) {
+  return request({ url: '/api/bill/batch-review', method: 'post', data })
+}
+
 // 审批票据（通过 / 退回）
 export function reviewBill(data) {
   return request({
