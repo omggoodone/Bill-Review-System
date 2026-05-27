@@ -13,6 +13,11 @@ public class CacheConstants
     public static final String LOGIN_TOKEN_KEY = "login_tokens:";
 
     /**
+     * 用户ID -> token 映射 redis key（用于按用户ID强制下线）
+     */
+    public static final String LOGIN_USER_ID_KEY = "login_user_ids:";
+
+    /**
      * 验证码 redis key
      */
     public static final String CAPTCHA_CODE_KEY = "captcha_codes:";

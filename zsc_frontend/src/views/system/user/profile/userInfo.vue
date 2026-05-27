@@ -24,6 +24,10 @@
 
 <script setup>
 import { updateUserProfile } from "@/api/system/user"
+import { useRouter } from 'vue-router'
+import useUserStore from '@/store/modules/user'
+
+const router = useRouter()
 
 const props = defineProps({
   user: {
@@ -55,7 +59,13 @@ function submit() {
 
 /** 关闭按钮 */
 function close() {
-  proxy.$tab.closePage()
+  proxy.$tab.closePage().then(() => {
+    const roles = useUserStore().roles
+    if (roles.includes('admin')) return router.push('/admin/super')
+    if (roles.includes('admin_user')) return router.push('/admin/dashboard')
+    if (roles.includes('reviewer')) return router.push('/bill/manage')
+    return router.push('/bill/manage')
+  })
 }
 
 // 回显当前登录用户信息

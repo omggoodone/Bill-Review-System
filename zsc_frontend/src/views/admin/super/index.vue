@@ -93,74 +93,57 @@
     </el-row>
 
     <el-row :gutter="20" class="dashboard-charts">
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+      <el-col :xs="24" :lg="8">
         <el-card class="chart-card">
           <template #header>
-            <div class="card-header">
-              <span>用户角色分布</span>
-            </div>
+            <div class="card-header"><span>用户角色分布</span></div>
           </template>
           <div ref="roleChartRef" class="chart-container"></div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+      <el-col :xs="24" :lg="8">
         <el-card class="chart-card">
           <template #header>
-            <div class="card-header">
-              <span>票据状态概览</span>
-            </div>
+            <div class="card-header"><span>票据状态概览</span></div>
           </template>
           <div ref="billChartRef" class="chart-container"></div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+      <el-col :xs="24" :lg="8">
         <el-card class="chart-card">
           <template #header>
-            <div class="card-header">
-              <span>快捷操作</span>
-            </div>
+            <div class="card-header"><span>快捷操作</span></div>
           </template>
           <div class="quick-actions">
-            <el-button type="primary" icon="User" size="large" @click="goUserManage">用户管理</el-button>
-            <el-button type="success" icon="Menu" size="large" @click="goCategoryManage">类别管理</el-button>
-            <el-button type="warning" icon="Checked" size="large" @click="goRegisterReview">注册审核</el-button>
+            <el-button type="primary" icon="User" size="large" @click="goUserManage">管理员管理</el-button>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="dashboard-tables">
-      <el-col :span="24">
-        <el-card class="table-card">
+    <el-row :gutter="20" class="dashboard-charts">
+      <el-col :xs="24" :lg="8">
+        <el-card class="chart-card">
           <template #header>
-            <div class="card-header">
-              <span>待审批注册申请</span>
-              <el-badge :value="registerRequests.length" :hidden="!registerRequests.length" />
-            </div>
+            <div class="card-header"><span>审核员工作量</span></div>
           </template>
-          <el-table v-loading="loading" :data="registerRequests" style="width: 100%" max-height="340">
-            <el-table-column label="邮箱" prop="email" min-width="180" :show-overflow-tooltip="true" />
-            <el-table-column label="申请角色" prop="roleKey" width="110">
-              <template #default="scope">
-                <el-tag v-if="scope.row.roleKey === 'reviewer'" type="warning" size="small">审核员</el-tag>
-                <el-tag v-else-if="scope.row.roleKey === 'user'" type="primary" size="small">普通用户</el-tag>
-                <el-tag v-else size="small">{{ scope.row.roleKey }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="申请说明" prop="note" min-width="160" :show-overflow-tooltip="true" />
-            <el-table-column label="申请时间" prop="createTime" width="160">
-              <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="160" fixed="right">
-              <template #default="scope">
-                <el-button link type="success" icon="Select" size="small" @click="handleApprove(scope.row)">通过</el-button>
-                <el-button link type="danger" icon="CloseBold" size="small" @click="handleReject(scope.row)">拒绝</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-if="!loading && !registerRequests.length" description="暂无待审批的注册申请" :image-size="80" />
+          <div ref="workloadChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="8">
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header"><span>各类别金额总数</span></div>
+          </template>
+          <div ref="categoryChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="8">
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header"><span>用户已通过金额</span></div>
+          </template>
+          <div ref="userAmountChartRef" class="chart-container"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -168,36 +151,31 @@
   </div>
 </template>
 
-<script setup>
-import { ref, getCurrentInstance, onMounted, nextTick } from 'vue'
+<script setup name="SuperAdminDashboard">
+import { ref, onMounted, nextTick } from 'vue'
 import { User, UserFilled, Checked, Setting, Document, Clock, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useRouter } from 'vue-router'
 import useSettingsStore from '@/store/modules/settings'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminStats, listRegisterRequests, approveRegisterRequest, rejectRegisterRequest } from '@/api/biz/admin'
+import { getAdminStats, getReviewerWorkload, getUserAmountSummary } from '@/api/biz/admin'
+import { getCategorySummary } from '@/api/biz/bill'
 
-const { proxy } = getCurrentInstance()
 const settingsStore = useSettingsStore()
 const router = useRouter()
 
 const roleChartRef = ref(null)
 const billChartRef = ref(null)
-const loading = ref(false)
+const workloadChartRef = ref(null)
+const categoryChartRef = ref(null)
+const userAmountChartRef = ref(null)
 
-const stats = ref({ totalUsers: 0, userCount: 0, reviewerCount: 0, adminCount: 0, totalBills: 0, pendingBills: 0, approvedBills: 0, rejectedBills: 0 })
-const registerRequests = ref([])
+const stats = ref({
+  totalUsers: 0, userCount: 0, reviewerCount: 0, adminCount: 0,
+  totalBills: 0, pendingBills: 0, approvedBills: 0, rejectedBills: 0
+})
 
-function parseTime(time) {
-  if (!time) return '-'
-  return proxy.parseTime(time)
-}
+function isDark() { return settingsStore.isDark }
 
-function isDark() {
-  return settingsStore.isDark
-}
-
-// ==================== 图表 ====================
 function initRoleChart() {
   if (!roleChartRef.value) return
   const chart = echarts.init(roleChartRef.value)
@@ -223,7 +201,6 @@ function initBillChart() {
   if (!billChartRef.value) return
   const chart = echarts.init(billChartRef.value)
   const dark = isDark()
-  const s = stats.value
   chart.setOption({
     tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
     legend: { orient: 'vertical', left: 'left', top: 'middle', textStyle: { color: dark ? '#ccc' : '#333' } },
@@ -231,9 +208,9 @@ function initBillChart() {
       name: '票据状态', type: 'pie', radius: ['45%', '70%'], center: ['60%', '50%'],
       label: { color: dark ? '#ccc' : '#333' },
       data: [
-        { value: s.pendingBills, name: '待审核', itemStyle: { color: '#e6a23c' } },
-        { value: s.approvedBills, name: '已通过', itemStyle: { color: '#67c23a' } },
-        { value: s.rejectedBills, name: '已退回', itemStyle: { color: '#f56c6c' } }
+        { value: stats.value.pendingBills, name: '待审核', itemStyle: { color: '#e6a23c' } },
+        { value: stats.value.approvedBills, name: '已通过', itemStyle: { color: '#67c23a' } },
+        { value: stats.value.rejectedBills, name: '已退回', itemStyle: { color: '#f56c6c' } }
       ].filter(d => d.value > 0),
       emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
     }]
@@ -241,59 +218,76 @@ function initBillChart() {
   window.addEventListener('resize', () => chart.resize())
 }
 
-// ==================== 数据加载 ====================
+function initWorkloadChart(data) {
+  if (!workloadChartRef.value || !data.length) return
+  const chart = echarts.init(workloadChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => {
+      const d = data[p[0].dataIndex]
+      return `${d.reviewerName}<br/>通过: ${d.approvedCount} | 退回: ${d.rejectedCount} | 合计: ${d.totalCount}`
+    }},
+    legend: { data: ['通过', '退回'], textStyle: { color: dark ? '#ccc' : '#333' } },
+    grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'category', data: data.map(d => d.reviewerName), axisLabel: { color: dark ? '#ccc' : '#333', fontWeight: 'bold' } },
+    series: [
+      { name: '通过', type: 'bar', stack: 'total', data: data.map(d => d.approvedCount), itemStyle: { color: '#67c23a' }, label: { show: true, position: 'insideRight', color: '#fff', formatter: p => p.value || '' } },
+      { name: '退回', type: 'bar', stack: 'total', data: data.map(d => d.rejectedCount), itemStyle: { color: '#f56c6c' }, label: { show: true, position: 'insideRight', color: '#fff', formatter: p => p.value || '' } }
+    ]
+  })
+  window.addEventListener('resize', () => chart.resize())
+}
+
+function initCategoryChart(data) {
+  if (!categoryChartRef.value || !data.length) return
+  const chart = echarts.init(categoryChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].name}<br/>¥${p[0].value.toLocaleString()}` },
+    grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', name: '金额 (¥)', nameTextStyle: { color: dark ? '#ccc' : '#666' }, axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'category', data: data.map(d => d.label), axisLabel: { color: dark ? '#ccc' : '#333', fontWeight: 'bold' } },
+    series: [{
+      name: '金额', type: 'bar', data: data.map(d => d.count),
+      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#409EFF' }, { offset: 1, color: '#67C23A' }]) },
+      label: { show: true, position: 'right', color: dark ? '#ddd' : '#333', fontWeight: 'bold', formatter: p => '¥' + p.value.toLocaleString() }
+    }]
+  })
+  window.addEventListener('resize', () => chart.resize())
+}
+
+function initUserAmountChart(data) {
+  if (!userAmountChartRef.value || !data.length) return
+  const chart = echarts.init(userAmountChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].name}<br/>¥${p[0].value.toLocaleString()}` },
+    grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', name: '金额 (¥)', nameTextStyle: { color: dark ? '#ccc' : '#666' }, axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'category', data: data.map(d => d.userName), axisLabel: { color: dark ? '#ccc' : '#333', fontWeight: 'bold' } },
+    series: [{
+      name: '金额', type: 'bar', data: data.map(d => d.totalAmount),
+      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#409EFF' }, { offset: 1, color: '#67C23A' }]) },
+      label: { show: true, position: 'right', color: dark ? '#ddd' : '#333', fontWeight: 'bold', formatter: p => '¥' + p.value.toLocaleString() }
+    }]
+  })
+  window.addEventListener('resize', () => chart.resize())
+}
+
 function loadData() {
-  loading.value = true
   getAdminStats().then(res => {
     stats.value = res.data
-    nextTick(() => {
-      initRoleChart()
-      initBillChart()
-    })
+    nextTick(() => { initRoleChart(); initBillChart() })
   })
-  listRegisterRequests().then(res => {
-    registerRequests.value = res.data || []
-  }).finally(() => { loading.value = false })
+  getReviewerWorkload().then(res => nextTick(() => initWorkloadChart(res.data || [])))
+  getCategorySummary().then(res => nextTick(() => initCategoryChart(res.data || [])))
+  getUserAmountSummary().then(res => nextTick(() => initUserAmountChart(res.data || [])))
 }
 
-// ==================== 注册审批 ====================
-function handleApprove(row) {
-  ElMessageBox.prompt('审批意见（可选）', '通过注册申请', {
-    confirmButtonText: '确认通过',
-    cancelButtonText: '取消',
-    inputType: 'textarea',
-    inputPlaceholder: '输入审批意见...'
-  }).then(({ value }) => {
-    approveRegisterRequest(row.id, value || '').then(() => {
-      ElMessage.success('已通过')
-      loadData()
-    })
-  }).catch(() => {})
-}
-
-function handleReject(row) {
-  ElMessageBox.prompt('请输入拒绝原因', '拒绝注册申请', {
-    confirmButtonText: '确认拒绝',
-    cancelButtonText: '取消',
-    inputType: 'textarea',
-    inputPlaceholder: '请输入拒绝原因...',
-    inputValidator: (val) => val ? true : '拒绝原因不能为空'
-  }).then(({ value }) => {
-    rejectRegisterRequest(row.id, value).then(() => {
-      ElMessage.success('已拒绝')
-      loadData()
-    })
-  }).catch(() => {})
-}
-
-// ==================== 导航 ====================
 function goUserManage() { router.push('/admin/users') }
-function goCategoryManage() { router.push('/admin/bizCategory') }
-function goRegisterReview() { router.push('/admin/registerReview') }
 
-onMounted(() => {
-  loadData()
-})
+onMounted(() => loadData())
 </script>
 
 <style scoped lang="scss">
@@ -310,14 +304,14 @@ onMounted(() => {
       .stat-icon {
         width: 56px; height: 56px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        &.total-icon    { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
-        &.user-icon     { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #fff; }
-        &.reviewer-icon { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #fff; }
-        &.admin-icon    { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #fff; }
-        &.bill-icon     { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
-        &.pending-icon  { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #fff; }
-        &.approved-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
-        &.rejected-icon { background: linear-gradient(135deg, #f56c6c 0%, #e6a23c 100%); color: #fff; }
+        &.total-icon     { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+        &.user-icon      { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #fff; }
+        &.reviewer-icon  { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #fff; }
+        &.admin-icon     { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #fff; }
+        &.bill-icon      { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
+        &.pending-icon   { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #fff; }
+        &.approved-icon  { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+        &.rejected-icon  { background: linear-gradient(135deg, #f56c6c 0%, #e6a23c 100%); color: #fff; }
       }
       .stat-info {
         text-align: center;
@@ -335,24 +329,10 @@ onMounted(() => {
   margin-bottom: 20px;
   .chart-card {
     height: 100%;
-    .card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; }
+    .card-header { display: flex; align-items: center; font-weight: bold; font-size: 16px; }
     .chart-container { height: 320px; width: 100%; }
-  }
-  .quick-actions {
-    height: 320px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-  }
-}
-
-.dashboard-tables {
-  .table-card {
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      font-weight: bold; font-size: 16px;
+    .quick-actions {
+      height: 320px; display: flex; align-items: center; justify-content: center;
     }
   }
 }

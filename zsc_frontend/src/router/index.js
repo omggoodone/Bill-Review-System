@@ -82,6 +82,20 @@ export const constantRoutes = [
 // 动态路由，基于用户权限动态去加载
 export const dynamicRoutes = [
   {
+    path: '/admin/super',
+    component: Layout,
+    hidden: true,
+    permissions: ['biz:admin:list'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/admin/super/index'),
+        name: 'SuperAdminDashboard',
+        meta: { title: '超级管理概览', icon: 'dashboard' }
+      }
+    ]
+  },
+  {
     path: '/system/user-auth',
     component: Layout,
     hidden: true,

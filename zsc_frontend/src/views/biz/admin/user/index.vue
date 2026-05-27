@@ -5,7 +5,7 @@
         <template #label><svg-icon icon-class="search" /></template>
         <el-input v-model="queryParams.userName" placeholder="用户名" clearable style="width: 160px" @keyup.enter="handleQuery" />
       </el-form-item>
-      <el-form-item prop="roleKey">
+      <el-form-item v-if="!isSuperAdmin" prop="roleKey">
         <template #label><svg-icon icon-class="peoples" /></template>
         <el-select v-model="queryParams.roleKey" placeholder="角色" clearable style="width: 120px">
           <el-option label="普通用户" value="user" />
@@ -22,7 +22,23 @@
         <el-button type="primary" icon="Search" circle native-type="button" @click="handleQuery" />
         <el-button type="primary" circle native-type="button" @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
       </el-form-item>
+      <el-form-item v-if="isSuperAdmin">
+        <el-button type="danger" icon="Plus" @click="openCreateDialog">新增管理员</el-button>
+      </el-form-item>
     </el-form>
+
+    <!-- 新增管理员弹窗 -->
+    <el-dialog v-model="createDialogVisible" title="新增管理员" width="420px" :close-on-click-modal="false">
+      <el-form :model="createForm" label-width="80px">
+        <el-form-item label="邮箱" required>
+          <el-input v-model="createForm.email" placeholder="请输入管理员邮箱" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="createLoading" @click="handleCreate">确认创建</el-button>
+      </template>
+    </el-dialog>
 
     <el-table v-loading="loading" :data="userList">
       <el-table-column label="用户名" align="center" prop="userName" min-width="120" />
@@ -30,9 +46,9 @@
       <el-table-column label="手机" align="center" prop="phonenumber" width="130" />
       <el-table-column label="角色" align="center" width="100">
         <template #default="scope">
-          <el-tag :type="scope.row.roles?.[0]?.roleKey === 'reviewer' ? 'success' : ''" size="small">
-            {{ scope.row.roles?.[0]?.roleKey === 'reviewer' ? '审核员' : '用户' }}
-          </el-tag>
+          <el-tag v-if="scope.row.roles?.[0]?.roleKey === 'admin_user'" type="danger" size="small">管理员</el-tag>
+          <el-tag v-else-if="scope.row.roles?.[0]?.roleKey === 'reviewer'" type="success" size="small">审核员</el-tag>
+          <el-tag v-else size="small">普通用户</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="状态" align="center" width="80">
@@ -55,15 +71,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { listUser, resetUserPwd, changeUserStatus } from '@/api/biz/admin'
+import { ref, reactive, computed, onMounted } from 'vue'
+import useUserStore from '@/store/modules/user'
+import { listUser, createAdmin, resetUserPwd, changeUserStatus } from '@/api/biz/admin'
 import { delUser } from '@/api/system/user'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable')
+const userStore = useUserStore()
+
+const isSuperAdmin = computed(() => userStore.roles.includes('admin'))
 
 const userList = ref([])
 const loading = ref(false)
+const createDialogVisible = ref(false)
+const createLoading = ref(false)
+const createForm = reactive({ email: '' })
 
 const queryParams = ref({ userName: undefined, roleKey: undefined, status: undefined })
 
@@ -73,6 +96,10 @@ function getList() {
   loading.value = true
   const raw = queryParams.value
   const params = {}
+  // 超管只看管理员账号
+  if (isSuperAdmin.value) {
+    params.roleKey = 'admin_user'
+  }
   Object.keys(raw).forEach(k => {
     const v = raw[k]
     if (v !== undefined && v !== null && v !== '') {
@@ -80,7 +107,12 @@ function getList() {
     }
   })
   listUser(params).then(res => {
-    userList.value = res.data || []
+    let list = res.data || []
+    // 管理员不能看到其他管理员账号
+    if (!isSuperAdmin.value) {
+      list = list.filter(u => u.roles?.[0]?.roleKey !== 'admin_user')
+    }
+    userList.value = list
   }).finally(() => { loading.value = false })
 }
 
@@ -91,8 +123,12 @@ function resetQuery() {
 }
 
 function handleResetPwd(row) {
-  proxy.$prompt(`请输入「${row.userName}」的新密码`, '重置密码', { confirmButtonText: '确定', cancelButtonText: '取消' }).then(({ value }) => {
-    resetUserPwd(row.userId, value).then(() => proxy.$modal.msgSuccess('密码重置成功'))
+  proxy.$prompt(`请输入「${row.userName}」的新密码（5~20位）`, '重置密码', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputValidator: (v) => (v && v.length >= 5 && v.length <= 20) ? true : '密码长度须在5~20位之间'
+  }).then(({ value }) => {
+    resetUserPwd(row.userId, value).then(() => { proxy.$modal.msgSuccess('密码重置成功'); getList() })
   })
 }
 
@@ -102,6 +138,30 @@ function handleStatus(row) {
   proxy.$modal.confirm(`确认${text}用户「${row.userName}」？`).then(() => {
     changeUserStatus(row.userId, newStatus).then(() => { proxy.$modal.msgSuccess(text + '成功'); getList() })
   })
+}
+
+function openCreateDialog() {
+  createForm.email = ''
+  createDialogVisible.value = true
+}
+
+function handleCreate() {
+  const email = createForm.email.trim()
+  if (!email) { proxy.$modal.msgWarning('请输入邮箱'); return }
+  createLoading.value = true
+  createAdmin({ email }).then(res => {
+    createDialogVisible.value = false
+    proxy.$alert(
+      `<div style="line-height:2;">
+        <p>用户名：<b>${res.data.userName}</b></p>
+        <p>密码：<b>${res.data.password}</b></p>
+        <p>邮箱：${res.data.email}</p>
+      </div>`,
+      '管理员账号已创建',
+      { dangerouslyUseHTMLString: true, confirmButtonText: '已记录' }
+    )
+    getList()
+  }).finally(() => { createLoading.value = false })
 }
 
 function handleDelete(row) {

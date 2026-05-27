@@ -106,6 +106,20 @@ public class TokenService
     }
 
     /**
+     * 通过用户ID删除登录信息（强制下线）
+     */
+    public void deleteLoginUserByUserId(Long userId)
+    {
+        String userIdKey = getUserIdKey(userId);
+        String token = redisCache.getCacheObject(userIdKey);
+        if (StringUtils.isNotEmpty(token))
+        {
+            redisCache.deleteObject(getTokenKey(token));
+            redisCache.deleteObject(userIdKey);
+        }
+    }
+
+    /**
      * 创建令牌
      * 
      * @param loginUser 用户信息
@@ -142,7 +156,7 @@ public class TokenService
 
     /**
      * 刷新令牌有效期
-     * 
+     *
      * @param loginUser 登录信息
      */
     public void refreshToken(LoginUser loginUser)
@@ -152,6 +166,12 @@ public class TokenService
         // 根据uuid将loginUser缓存
         String userKey = getTokenKey(loginUser.getToken());
         redisCache.setCacheObject(userKey, loginUser, expireTime, TimeUnit.MINUTES);
+        // 同时存储userId -> token映射，便于按用户ID强制下线
+        if (loginUser.getUserId() != null)
+        {
+            String userIdKey = getUserIdKey(loginUser.getUserId());
+            redisCache.setCacheObject(userIdKey, loginUser.getToken(), expireTime, TimeUnit.MINUTES);
+        }
     }
 
     /**
@@ -228,5 +248,10 @@ public class TokenService
     private String getTokenKey(String uuid)
     {
         return CacheConstants.LOGIN_TOKEN_KEY + uuid;
+    }
+
+    private String getUserIdKey(Long userId)
+    {
+        return CacheConstants.LOGIN_USER_ID_KEY + userId;
     }
 }

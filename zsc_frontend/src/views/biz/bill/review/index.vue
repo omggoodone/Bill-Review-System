@@ -27,6 +27,11 @@
         <el-date-picker v-model="dateRange" type="daterange" range-separator="-" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width: 200px" />
       </el-form-item>
       <el-form-item>
+        <el-button :type="staleOnly ? 'warning' : ''" circle @click="staleOnly = !staleOnly; handleQuery()">
+          <svg-icon icon-class="stale" />
+        </el-button>
+      </el-form-item>
+      <el-form-item>
         <el-button type="primary" icon="Search" circle @click="handleQuery" />
         <el-button type="primary" circle @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
       </el-form-item>
@@ -121,6 +126,8 @@ const { proxy } = getCurrentInstance()
 const { biz_bill_status } = proxy.useDict('biz_bill_status')
 
 const billList = ref([])
+const allList = ref([])
+const staleOnly = ref(false)
 const loading = ref(true)
 const total = ref(0)
 const dateRange = ref([])
@@ -163,8 +170,11 @@ function getList() {
   queryParams.value.startTime = dateRange.value ? dateRange.value[0] : undefined
   queryParams.value.endTime = dateRange.value ? dateRange.value[1] : undefined
   listBill(queryParams.value).then(response => {
-    billList.value = response.data.list
+    allList.value = response.data.list
     total.value = response.data.total
+    billList.value = staleOnly.value
+      ? allList.value.filter(b => isStale(b.createTime))
+      : allList.value
     loading.value = false
   })
 }
@@ -176,6 +186,7 @@ function handleQuery() {
 
 function resetQuery() {
   dateRange.value = []
+  staleOnly.value = false
   proxy.resetForm("queryFormRef")
   handleQuery()
 }

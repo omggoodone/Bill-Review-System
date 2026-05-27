@@ -24,6 +24,7 @@ import com.zsc.common.core.domain.entity.SysDept;
 import com.zsc.common.core.domain.entity.SysRole;
 import com.zsc.common.core.domain.entity.SysUser;
 import com.zsc.common.core.page.TableDataInfo;
+import com.zsc.common.constant.UserConstants;
 import com.zsc.common.enums.BusinessType;
 import com.zsc.common.utils.SecurityUtils;
 import com.zsc.common.utils.StringUtils;
@@ -32,10 +33,11 @@ import com.zsc.system.service.ISysDeptService;
 import com.zsc.system.service.ISysPostService;
 import com.zsc.system.service.ISysRoleService;
 import com.zsc.system.service.ISysUserService;
+import com.zsc.framework.web.service.TokenService;
 
 /**
  * 用户信息
- * 
+ *
  * @author zsc
  */
 @RestController
@@ -53,6 +55,9 @@ public class SysUserController extends BaseController
 
     @Autowired
     private ISysPostService postService;
+
+    @Autowired
+    private TokenService tokenService;
 
     /**
      * 获取用户列表
@@ -184,7 +189,16 @@ public class SysUserController extends BaseController
         {
             return error("当前用户不能删除");
         }
-        return toAjax(userService.deleteUserByIds(userIds));
+        int rows = userService.deleteUserByIds(userIds);
+        // 删除用户时同时删除登录token，强制下线
+        if (rows > 0)
+        {
+            for (Long userId : userIds)
+            {
+                tokenService.deleteLoginUserByUserId(userId);
+            }
+        }
+        return toAjax(rows);
     }
 
     /**
@@ -195,9 +209,14 @@ public class SysUserController extends BaseController
     @PutMapping("/resetPwd")
     public AjaxResult resetPwd(@RequestBody SysUser user)
     {
+        String rawPwd = user.getPassword();
+        if (StringUtils.isEmpty(rawPwd) || rawPwd.length() < UserConstants.PASSWORD_MIN_LENGTH
+                || rawPwd.length() > UserConstants.PASSWORD_MAX_LENGTH) {
+            return error("密码长度须在" + UserConstants.PASSWORD_MIN_LENGTH + "~" + UserConstants.PASSWORD_MAX_LENGTH + "位之间");
+        }
         userService.checkUserAllowed(user);
         userService.checkUserDataScope(user.getUserId());
-        user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
+        user.setPassword(SecurityUtils.encryptPassword(rawPwd));
         user.setUpdateBy(getUsername());
         return toAjax(userService.resetPwd(user));
     }
@@ -213,7 +232,13 @@ public class SysUserController extends BaseController
         userService.checkUserAllowed(user);
         userService.checkUserDataScope(user.getUserId());
         user.setUpdateBy(getUsername());
-        return toAjax(userService.updateUserStatus(user));
+        int rows = userService.updateUserStatus(user);
+        // 停用账号时立即删除登录token，强制下线
+        if (rows > 0 && UserConstants.USER_DISABLE.equals(user.getStatus()))
+        {
+            tokenService.deleteLoginUserByUserId(user.getUserId());
+        }
+        return toAjax(rows);
     }
 
     /**

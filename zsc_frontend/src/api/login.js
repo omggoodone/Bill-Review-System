@@ -57,6 +57,16 @@ export function submitRegisterRequest(data) {
   })
 }
 
+// 检查系统是否已初始化
+export function getInitStatus() {
+  return request({ url: '/api/init/status', method: 'get', headers: { isToken: false } })
+}
+
+// 初始化系统（创建首个超管）
+export function initSystem(data) {
+  return request({ url: '/api/init', method: 'post', data, headers: { isToken: false } })
+}
+
 // 获取验证码
 export function getCodeImg() {
   return request({

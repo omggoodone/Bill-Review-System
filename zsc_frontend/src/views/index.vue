@@ -1,291 +1,456 @@
 <template>
   <div class="app-container dashboard">
-    <el-row :gutter="20" class="dashboard-stats">
-      <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-content">
-            <div class="stat-icon book-icon">
-              <el-icon :size="36"><Reading /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statistics.totalBooks }}</div>
-              <div class="stat-label">总图书数</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-content">
-            <div class="stat-icon available-icon">
-              <el-icon :size="36"><CircleCheck /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statistics.availableBooks }}</div>
-              <div class="stat-label">可借图书</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-content">
-            <div class="stat-icon borrowed-icon">
-              <el-icon :size="36"><DocumentChecked /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statistics.borrowedBooks }}</div>
-              <div class="stat-label">已借出</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-content">
-            <div class="stat-icon category-icon">
-              <el-icon :size="36"><Menu /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ statistics.totalCategories }}</div>
-              <div class="stat-label">分类数量</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
 
-    <el-row :gutter="20" class="dashboard-charts">
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="card-header">
-              <span>图书分类统计</span>
+    <!-- ==================== 管理员(审核员)视图 ==================== -->
+    <template v-if="isReviewer">
+      <el-row :gutter="20" class="dashboard-stats">
+        <el-col :xs="12" :sm="8" :md="span5">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon pending-icon">
+                <el-icon :size="28"><Clock /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ reviewerStats.pendingCount }}</div>
+                <div class="stat-label">待审核</div>
+              </div>
             </div>
-          </template>
-          <div ref="categoryChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="card-header">
-              <span>本周借阅趋势</span>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="8" :md="span5">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon approved-icon">
+                <el-icon :size="28"><CircleCheck /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ reviewerStats.todayApproved }}</div>
+                <div class="stat-label">今日通过</div>
+              </div>
             </div>
-          </template>
-          <div ref="borrowTrendChartRef" class="chart-container"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="12" :lg="8">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="card-header">
-              <span>借阅排行榜</span>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="8" :md="span5">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon rejected-icon">
+                <el-icon :size="28"><CircleClose /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ reviewerStats.todayRejected }}</div>
+                <div class="stat-label">今日退回</div>
+              </div>
             </div>
-          </template>
-          <div class="rank-list">
-            <div v-for="(book, index) in hotBooks" :key="index" class="rank-item">
-              <span :class="['rank-number', { top: index < 3 }]">{{ index + 1 }}</span>
-              <span class="rank-title">{{ book.title }}</span>
-              <span class="rank-count">{{ book.borrowCount }}次</span>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="8" :md="span5">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon rate-icon">
+                <el-icon :size="28"><TrendCharts /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ reviewerStats.approvalRate }}%</div>
+                <div class="stat-label">通过率</div>
+              </div>
             </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="8" :md="span5">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon stale-icon">
+                <el-icon :size="28"><WarningFilled /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value stale-value">{{ reviewerStats.stalePending }}</div>
+                <div class="stat-label">积压预警 (&gt;3天)</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <el-row :gutter="20" class="dashboard-tables">
-      <el-col :xs="24" :sm="24" :lg="12">
-        <el-card class="table-card">
-          <template #header>
-            <div class="card-header">
-              <span>热门图书</span>
-              <el-button type="primary" link @click="viewAllBooks">查看全部</el-button>
+      <el-row :gutter="20" class="dashboard-charts">
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>各类别金额汇总</span>
+              </div>
+            </template>
+            <div ref="categoryChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>本月审核趋势</span>
+              </div>
+            </template>
+            <div ref="trendChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>快捷操作</span>
+              </div>
+            </template>
+            <div class="quick-actions">
+              <el-button type="primary" icon="Checked" size="large" @click="goReview">去审核</el-button>
+              <el-button type="success" icon="Document" size="large" @click="goBillManage">全部票据</el-button>
             </div>
-          </template>
-          <el-table :data="hotBooks" style="width: 100%" max-height="300">
-            <el-table-column label="排名" width="70" align="center">
-              <template #default="scope">
-                <el-tag :type="scope.$index < 3 ? 'danger' : 'info'" effect="dark">
-                  {{ scope.$index + 1 }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="title" label="书名" />
-            <el-table-column prop="author" label="作者" width="120" />
-            <el-table-column prop="borrowCount" label="借阅次数" width="100" align="center" />
-          </el-table>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="24" :lg="12">
-        <el-card class="table-card">
-          <template #header>
-            <div class="card-header">
-              <span>最新入库</span>
-              <el-button type="primary" link @click="viewNewBooks">查看全部</el-button>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" class="dashboard-tables">
+        <el-col :span="24">
+          <el-card class="table-card">
+            <template #header>
+              <div class="card-header">
+                <span>最近审核记录</span>
+                <el-button type="primary" link @click="goReview">查看全部</el-button>
+              </div>
+            </template>
+            <el-table v-loading="reviewerLoading" :data="reviewerStats.recentReviews" style="width: 100%" max-height="340">
+              <el-table-column label="票据编号" prop="billNo" :show-overflow-tooltip="true" min-width="160" />
+              <el-table-column label="标题" prop="title" :show-overflow-tooltip="true" min-width="180" />
+              <el-table-column label="类别" prop="categoryName" width="100" />
+              <el-table-column label="金额" prop="amount" width="120">
+                <template #default="scope">
+                  <span>{{ formatAmount(scope.row.amount) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="审核人" prop="auditBy" width="100" />
+              <el-table-column label="结果" prop="status" width="80">
+                <template #default="scope">
+                  <dict-tag :options="biz_bill_status" :value="scope.row.status" />
+                </template>
+              </el-table-column>
+              <el-table-column label="审核时间" prop="auditTime" width="160">
+                <template #default="scope">
+                  <span>{{ parseTime(scope.row.auditTime) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </el-col>
+      </el-row>
+    </template>
+
+    <!-- ==================== 普通用户视图 ==================== -->
+    <template v-else>
+      <el-row :gutter="20" class="dashboard-stats">
+        <el-col :xs="12" :sm="12" :md="6">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon total-icon">
+                <el-icon :size="28"><Document /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statistics.total }}</div>
+                <div class="stat-label">全部票据</div>
+              </div>
             </div>
-          </template>
-          <el-table :data="newBooks" style="width: 100%" max-height="300">
-            <el-table-column prop="title" label="书名" />
-            <el-table-column prop="author" label="作者" width="100" />
-            <el-table-column prop="categoryName" label="分类" width="120" />
-            <el-table-column prop="createdTime" label="入库时间" width="120" />
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon draft-icon">
+                <el-icon :size="28"><Edit /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statistics.draft }}</div>
+                <div class="stat-label">草稿中</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon pending-icon">
+                <el-icon :size="28"><Clock /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statistics.pending }}</div>
+                <div class="stat-label">审批中</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-content">
+              <div class="stat-icon approved-icon">
+                <el-icon :size="28"><CircleCheck /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ statistics.approved }}</div>
+                <div class="stat-label">已通过</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" class="dashboard-charts">
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>票据状态分布</span>
+              </div>
+            </template>
+            <div ref="statusChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>各类别金额汇总</span>
+              </div>
+            </template>
+            <div ref="userCategoryChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="24" :md="12" :lg="8">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>快捷操作</span>
+              </div>
+            </template>
+            <div class="quick-actions">
+              <el-button type="primary" icon="Plus" size="large" @click="goCreate">新增票据</el-button>
+              <el-button type="success" icon="Document" size="large" @click="goMyBill">我的票据</el-button>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" class="dashboard-tables">
+        <el-col :span="24">
+          <el-card class="table-card">
+            <template #header>
+              <div class="card-header">
+                <span>最近创建的票据</span>
+                <el-button type="primary" link @click="goMyBill">查看全部</el-button>
+              </div>
+            </template>
+            <el-table v-loading="loading" :data="recentBills" style="width: 100%" max-height="340">
+              <el-table-column label="票据编号" prop="billNo" :show-overflow-tooltip="true" min-width="160" />
+              <el-table-column label="标题" prop="title" :show-overflow-tooltip="true" min-width="180" />
+              <el-table-column label="类别" prop="categoryName" width="100" />
+              <el-table-column label="金额" prop="amount" width="120">
+                <template #default="scope">
+                  <span>{{ formatAmount(scope.row.amount) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" prop="status" width="90">
+                <template #default="scope">
+                  <dict-tag :options="biz_bill_status" :value="scope.row.status" />
+                </template>
+              </el-table-column>
+              <el-table-column label="创建时间" prop="createTime" width="160">
+                <template #default="scope">
+                  <span>{{ parseTime(scope.row.createTime) }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </el-col>
+      </el-row>
+    </template>
   </div>
 </template>
 
 <script setup name="Index">
-import { ref, onMounted, nextTick } from 'vue'
-import { Reading, CircleCheck, DocumentChecked, Menu } from '@element-plus/icons-vue'
+import { ref, computed, getCurrentInstance, onMounted, nextTick } from 'vue'
+import { Document, Edit, Clock, CircleCheck, CircleClose, TrendCharts, WarningFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useRouter } from 'vue-router'
+import useSettingsStore from '@/store/modules/settings'
+import useUserStore from '@/store/modules/user'
+import { listBill, getCategorySummary, getTrend, getReviewerStats } from '@/api/biz/bill'
 
+const { proxy } = getCurrentInstance()
+const settingsStore = useSettingsStore()
+const userStore = useUserStore()
+const { biz_bill_status } = proxy.useDict('biz_bill_status')
 const router = useRouter()
+
+const isReviewer = computed(() => userStore.roles.includes('reviewer'))
+const span5 = 24 / 5
+
+const statusChartRef = ref(null)
 const categoryChartRef = ref(null)
-const borrowTrendChartRef = ref(null)
+const userCategoryChartRef = ref(null)
+const trendChartRef = ref(null)
+const loading = ref(false)
+const reviewerLoading = ref(false)
 
-const version = ref('1.0.0')
+const statistics = ref({ total: 0, draft: 0, pending: 0, approved: 0, rejected: 0 })
+const recentBills = ref([])
 
-const statistics = ref({
-  totalBooks: 0,
-  availableBooks: 0,
-  borrowedBooks: 0,
-  totalCategories: 0
+const reviewerStats = ref({
+  pendingCount: 0,
+  todayApproved: 0,
+  todayRejected: 0,
+  approvalRate: 0,
+  stalePending: 0,
+  recentReviews: []
 })
 
-const hotBooks = ref([
-  { title: '活着', author: '余华', borrowCount: 156 },
-  { title: '三体', author: '刘慈欣', borrowCount: 142 },
-  { title: '百年孤独', author: '加西亚·马尔克斯', borrowCount: 128 },
-  { title: '追风筝的人', author: '卡勒德·胡赛尼', borrowCount: 115 },
-  { title: '解忧杂货店', author: '东野圭吾', borrowCount: 98 },
-  { title: '白夜行', author: '东野圭吾', borrowCount: 87 },
-  { title: '人类简史', author: '尤瓦尔·赫拉利', borrowCount: 76 },
-  { title: '平凡的世界', author: '路遥', borrowCount: 65 },
-  { title: '小王子', author: '圣埃克苏佩里', borrowCount: 54 },
-  { title: '围城', author: '钱钟书', borrowCount: 43 }
-])
-
-const newBooks = ref([
-  { title: '行舟绿水中', author: '李凤利', categoryName: '文学小说', createdTime: '2025-04-24' },
-  { title: '迟到的春天', author: '张三', categoryName: '历史传记', createdTime: '2025-05-01' },
-  { title: 'AI 人工智能', author: '王五', categoryName: '计算机科学', createdTime: '2025-05-02' },
-  { title: '深度学习导论', author: '赵六', categoryName: '计算机科学', createdTime: '2025-05-06' }
-])
-
-function goTarget(href) {
-  window.open(href, '_blank')
+function formatAmount(amount) {
+  if (amount == null) return '-'
+  return '¥' + Number(amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function initStatistics() {
-  statistics.value = {
-    totalBooks: 172,
-    availableBooks: 145,
-    borrowedBooks: 27,
-    totalCategories: 12
-  }
+function parseTime(time) {
+  if (!time) return '-'
+  return proxy.parseTime(time)
 }
 
-function initCategoryChart() {
+// ==================== 图表公共工具 ====================
+function isDark() {
+  return settingsStore.isDark
+}
+
+// ==================== 管理员图表 ====================
+function initCategoryChart(data) {
   if (!categoryChartRef.value) return
   const chart = echarts.init(categoryChartRef.value)
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left',
-      top: 'middle'
-    },
-    series: [
-      {
-        name: '图书分类',
-        type: 'pie',
-        radius: '60%',
-        center: ['60%', '50%'],
-        data: [
-          { value: 45, name: '文学小说' },
-          { value: 32, name: '计算机科学' },
-          { value: 28, name: '历史传记' },
-          { value: 25, name: '自然科学' },
-          { value: 22, name: '工程技术' },
-          { value: 20, name: '经济管理' }
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].name}<br/>¥${p[0].value.toLocaleString()}` },
+    grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', name: '金额 (¥)', nameTextStyle: { color: dark ? '#ccc' : '#666' }, axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'category', data: data.map(d => d.label), axisLabel: { color: dark ? '#ccc' : '#333', fontWeight: 'bold' } },
+    series: [{
+      name: '金额', type: 'bar', data: data.map(d => d.count),
+      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#409EFF' }, { offset: 1, color: '#67C23A' }]) },
+      label: { show: true, position: 'right', color: dark ? '#ddd' : '#333', fontWeight: 'bold', formatter: p => '¥' + p.value.toLocaleString() }
+    }]
+  })
   window.addEventListener('resize', () => chart.resize())
 }
 
-function initBorrowTrendChart() {
-  if (!borrowTrendChartRef.value) return
-  const chart = echarts.init(borrowTrendChartRef.value)
-  const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    xAxis: {
-      type: 'category',
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: '借阅次数',
-        type: 'line',
-        smooth: true,
-        data: [120, 132, 101, 134, 90, 230, 210],
-        itemStyle: {
-          color: '#409EFF'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            {
-              offset: 0,
-              color: 'rgba(64, 158, 255, 0.5)'
-            },
-            {
-              offset: 1,
-              color: 'rgba(64, 158, 255, 0.01)'
-            }
-          ])
-        }
-      }
-    ]
-  }
-  chart.setOption(option)
+function initTrendChart(data) {
+  if (!trendChartRef.value) return
+  const chart = echarts.init(trendChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: data.map(d => d.label), axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'value', name: '提交数', nameTextStyle: { color: dark ? '#ccc' : '#666' }, axisLabel: { color: dark ? '#aaa' : '#666' } },
+    series: [{
+      name: '提交数', type: 'line', smooth: true, data: data.map(d => d.count),
+      itemStyle: { color: '#409EFF' },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64, 158, 255, 0.5)' }, { offset: 1, color: 'rgba(64, 158, 255, 0.01)' }]) }
+    }]
+  })
   window.addEventListener('resize', () => chart.resize())
 }
 
-function viewAllBooks() {
-  router.push('/book/book')
+// ==================== 普通用户图表 ====================
+function initStatusChart() {
+  if (!statusChartRef.value) return
+  const chart = echarts.init(statusChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+    legend: { orient: 'vertical', left: 'left', top: 'middle', textStyle: { color: dark ? '#ccc' : '#333' } },
+    series: [{
+      name: '票据状态', type: 'pie', radius: '60%', center: ['60%', '50%'],
+      label: { color: dark ? '#ccc' : '#333' },
+      data: [
+        { value: statistics.value.draft, name: '草稿' },
+        { value: statistics.value.pending, name: '审批中' },
+        { value: statistics.value.approved, name: '已通过' },
+        { value: statistics.value.rejected, name: '已退回' }
+      ].filter(d => d.value > 0),
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+    }]
+  })
+  window.addEventListener('resize', () => chart.resize())
 }
 
-function viewNewBooks() {
-  router.push('/book/book')
+function initUserCategoryChart(data) {
+  if (!userCategoryChartRef.value) return
+  const chart = echarts.init(userCategoryChartRef.value)
+  const dark = isDark()
+  chart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].name}<br/>¥${p[0].value.toLocaleString()}` },
+    grid: { left: '3%', right: '10%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', name: '金额 (¥)', nameTextStyle: { color: dark ? '#ccc' : '#666' }, axisLabel: { color: dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'category', data: data.map(d => d.label), axisLabel: { color: dark ? '#ccc' : '#333', fontWeight: 'bold' } },
+    series: [{
+      name: '金额', type: 'bar', data: data.map(d => d.count),
+      itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#409EFF' }, { offset: 1, color: '#67C23A' }]) },
+      label: { show: true, position: 'right', color: dark ? '#ddd' : '#333', fontWeight: 'bold', formatter: p => '¥' + p.value.toLocaleString() }
+    }]
+  })
+  window.addEventListener('resize', () => chart.resize())
 }
+
+// ==================== 数据加载 ====================
+function loadReviewerData() {
+  reviewerLoading.value = true
+  getReviewerStats().then(res => {
+    reviewerStats.value = res.data
+  }).finally(() => {
+    reviewerLoading.value = false
+    nextTick(() => {
+      getCategorySummary().then(res => initCategoryChart(res.data || [])).catch(() => initCategoryChart([]))
+      getTrend().then(res => initTrendChart(res.data || [])).catch(() => initTrendChart([]))
+    })
+  })
+}
+
+function loadUserData() {
+  loading.value = true
+  listBill({ currentPage: 1, pageSize: 10 }).then(res => {
+    const list = res.data.list || []
+    recentBills.value = list.slice(0, 5)
+    statistics.value.total = res.data.total || 0
+    Promise.all([
+      listBill({ currentPage: 1, pageSize: 1, status: '0' }),
+      listBill({ currentPage: 1, pageSize: 1, status: '1' }),
+      listBill({ currentPage: 1, pageSize: 1, status: '2' }),
+      listBill({ currentPage: 1, pageSize: 1, status: '3' })
+    ]).then(([draftRes, pendingRes, approvedRes, rejectedRes]) => {
+      statistics.value.draft = draftRes.data.total || 0
+      statistics.value.pending = pendingRes.data.total || 0
+      statistics.value.approved = approvedRes.data.total || 0
+      statistics.value.rejected = rejectedRes.data.total || 0
+    }).finally(() => {
+      nextTick(() => {
+        initStatusChart()
+        getCategorySummary().then(res => initUserCategoryChart(res.data || [])).catch(() => initUserCategoryChart([]))
+      })
+    })
+  }).finally(() => { loading.value = false })
+}
+
+function goCreate() { router.push('/bill/myBill') }
+function goMyBill() { router.push('/bill/myBill') }
+function goReview() { router.push('/bill/review') }
+function goBillManage() { router.push('/bill/manage') }
 
 onMounted(() => {
-  initStatistics()
-  nextTick(() => {
-    initCategoryChart()
-    initBorrowTrendChart()
-  })
+  if (isReviewer.value) {
+    loadReviewerData()
+  } else {
+    loadUserData()
+  }
 })
 </script>
 
@@ -293,80 +458,45 @@ onMounted(() => {
 .dashboard {
   padding: 20px;
 
-  .dashboard-header {
-    margin-bottom: 20px;
-
-    h2 {
-      margin-top: 0;
-      color: #303133;
-    }
-
-    p {
-      color: #606266;
-      line-height: 1.8;
-      margin-bottom: 10px;
-    }
-  }
-
   .dashboard-stats {
     margin-bottom: 20px;
 
+    .el-col {
+      margin-bottom: 12px;
+    }
+
     .stat-card {
       transition: all 0.3s;
-
-      &:hover {
-        transform: translateY(-5px);
-      }
+      &:hover { transform: translateY(-3px); }
 
       .stat-content {
         display: flex;
         align-items: center;
         justify-content: space-around;
-        padding: 10px 0;
+        padding: 6px 0;
 
         .stat-icon {
-          width: 70px;
-          height: 70px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
 
-          &.book-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-          }
-
-          &.available-icon {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: #fff;
-          }
-
-          &.borrowed-icon {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: #fff;
-          }
-
-          &.category-icon {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: #fff;
-          }
+          &.total-icon     { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+          &.draft-icon     { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
+          &.pending-icon   { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #fff; }
+          &.approved-icon  { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #fff; }
+          &.rejected-icon  { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #fff; }
+          &.rate-icon      { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+          &.stale-icon     { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #fff; }
         }
 
         .stat-info {
           text-align: center;
-
-          .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #303133;
-            margin-bottom: 5px;
-          }
-
-          .stat-label {
-            font-size: 14px;
-            color: #909399;
-          }
+          .stat-value { font-size: 24px; font-weight: bold; color: var(--el-text-color-primary); margin-bottom: 2px; }
+          .stat-value.stale-value { color: #e6a23c; }
+          .stat-label { font-size: 12px; color: var(--el-text-color-secondary); }
         }
       }
     }
@@ -377,58 +507,16 @@ onMounted(() => {
 
     .chart-card {
       height: 100%;
+      .chart-container { height: 320px; width: 100%; }
+    }
 
-      .chart-container {
-        height: 280px;
-        width: 100%;
-      }
-
-      .rank-list {
-        height: 280px;
-        overflow-y: auto;
-
-        .rank-item {
-          display: flex;
-          align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px solid #f0f0f0;
-
-          &:last-child {
-            border-bottom: none;
-          }
-
-          .rank-number {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #e0e0e0;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            margin-right: 12px;
-
-            &.top {
-              background: #f56c6c;
-            }
-          }
-
-          .rank-title {
-            flex: 1;
-            color: #303133;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .rank-count {
-            color: #909399;
-            font-size: 12px;
-            margin-left: 10px;
-          }
-        }
-      }
+    .quick-actions {
+      height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
     }
   }
 

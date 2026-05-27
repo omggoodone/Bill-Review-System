@@ -8,7 +8,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon pending-icon">
-                <el-icon :size="36"><Clock /></el-icon>
+                <el-icon :size="28"><Clock /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ reviewerStats.pendingCount }}</div>
@@ -21,7 +21,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon approved-icon">
-                <el-icon :size="36"><CircleCheck /></el-icon>
+                <el-icon :size="28"><CircleCheck /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ reviewerStats.todayApproved }}</div>
@@ -34,7 +34,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon rejected-icon">
-                <el-icon :size="36"><CircleClose /></el-icon>
+                <el-icon :size="28"><CircleClose /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ reviewerStats.todayRejected }}</div>
@@ -47,7 +47,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon rate-icon">
-                <el-icon :size="36"><TrendCharts /></el-icon>
+                <el-icon :size="28"><TrendCharts /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ reviewerStats.approvalRate }}%</div>
@@ -60,12 +60,25 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon stale-icon">
-                <el-icon :size="36"><WarningFilled /></el-icon>
+                <el-icon :size="28"><WarningFilled /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value stale-value">{{ reviewerStats.stalePending }}</div>
                 <div class="stat-label">积压预警 (&gt;3天)</div>
               </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" class="dashboard-charts">
+        <el-col :span="24">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header"><span>快捷操作</span></div>
+            </template>
+            <div class="quick-actions">
+              <el-button type="primary" icon="Checked" size="large" @click="goReview">去审核</el-button>
             </div>
           </el-card>
         </el-col>
@@ -77,7 +90,6 @@
             <template #header>
               <div class="card-header">
                 <span>最近审核记录</span>
-                <el-button type="primary" link @click="goReview">去审核</el-button>
               </div>
             </template>
             <el-table v-loading="reviewerLoading" :data="reviewerStats.recentReviews" style="width: 100%" max-height="400">
@@ -89,6 +101,7 @@
                   <span>{{ formatAmount(scope.row.amount) }}</span>
                 </template>
               </el-table-column>
+              <el-table-column label="审核人" prop="auditBy" width="100" />
               <el-table-column label="结果" prop="status" width="80">
                 <template #default="scope">
                   <dict-tag :options="biz_bill_status" :value="scope.row.status" />
@@ -112,7 +125,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon total-icon">
-                <el-icon :size="36"><Document /></el-icon>
+                <el-icon :size="28"><Document /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.total }}</div>
@@ -125,7 +138,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon draft-icon">
-                <el-icon :size="36"><Edit /></el-icon>
+                <el-icon :size="28"><Edit /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.draft }}</div>
@@ -138,7 +151,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon pending-icon">
-                <el-icon :size="36"><Clock /></el-icon>
+                <el-icon :size="28"><Clock /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.pending }}</div>
@@ -151,7 +164,7 @@
           <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon approved-icon">
-                <el-icon :size="36"><CircleCheck /></el-icon>
+                <el-icon :size="28"><CircleCheck /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.approved }}</div>
@@ -178,7 +191,6 @@
             <template #header>
               <div class="card-header">
                 <span>各类别金额汇总</span>
-                <el-tag type="success" size="small" style="margin-left: 8px;">已通过</el-tag>
               </div>
             </template>
             <div ref="trendChartRef" class="chart-container"></div>
@@ -377,22 +389,22 @@ onMounted(() => {
     margin-bottom: 20px;
 
     .el-col {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .stat-card {
       transition: all 0.3s;
-      &:hover { transform: translateY(-5px); }
+      &:hover { transform: translateY(-3px); }
 
       .stat-content {
         display: flex;
         align-items: center;
         justify-content: space-around;
-        padding: 10px 0;
+        padding: 6px 0;
 
         .stat-icon {
-          width: 70px;
-          height: 70px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -409,9 +421,9 @@ onMounted(() => {
 
         .stat-info {
           text-align: center;
-          .stat-value { font-size: 32px; font-weight: bold; color: var(--el-text-color-primary); margin-bottom: 5px; }
+          .stat-value { font-size: 24px; font-weight: bold; color: var(--el-text-color-primary); margin-bottom: 2px; }
           .stat-value.stale-value { color: #e6a23c; }
-          .stat-label { font-size: 14px; color: var(--el-text-color-secondary); }
+          .stat-label { font-size: 12px; color: var(--el-text-color-secondary); }
         }
       }
     }
@@ -422,11 +434,11 @@ onMounted(() => {
 
     .chart-card {
       height: 100%;
-      .chart-container { height: 280px; width: 100%; }
+      .chart-container { height: 320px; width: 100%; }
     }
 
     .quick-actions {
-      height: 280px;
+      height: 120px;
       display: flex;
       flex-direction: column;
       align-items: center;

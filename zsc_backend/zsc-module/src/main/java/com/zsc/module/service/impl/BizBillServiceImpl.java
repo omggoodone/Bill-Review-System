@@ -415,7 +415,11 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
             .ge(BizBill::getUpdateTime, startStr)
             .le(BizBill::getUpdateTime, endStr)
             .ne(BizBill::getStatus, "0");
-        if (!SecurityUtils.hasPermi("biz:bill:review")) {
+        if (SecurityUtils.hasPermi("*:*:*")) {
+            // 超管看全量
+        } else if (SecurityUtils.hasPermi("biz:bill:review")) {
+            trendWrapper.eq(BizBill::getAuditBy, SecurityUtils.getUsername());
+        } else {
             trendWrapper.eq(BizBill::getCreateBy, SecurityUtils.getUsername());
         }
         List<BizBill> bills = this.list(trendWrapper);
@@ -442,7 +446,11 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     public List<TrendItemVo> getCategoryAmountSummary() {
         LambdaQueryWrapper<BizBill> wrapper = new LambdaQueryWrapper<BizBill>()
             .eq(BizBill::getStatus, "2");
-        if (!SecurityUtils.hasPermi("biz:bill:review")) {
+        if (SecurityUtils.hasPermi("*:*:*")) {
+            // 超管看全量
+        } else if (SecurityUtils.hasPermi("biz:bill:review")) {
+            wrapper.eq(BizBill::getAuditBy, SecurityUtils.getUsername());
+        } else {
             wrapper.eq(BizBill::getCreateBy, SecurityUtils.getUsername());
         }
         List<BizBill> bills = this.list(wrapper);

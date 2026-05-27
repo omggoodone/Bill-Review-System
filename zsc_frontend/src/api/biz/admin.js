@@ -40,6 +40,21 @@ export function approveRegisterRequest(id, comment) {
   return request({ url: `/api/admin/register-requests/${id}/approve`, method: 'post', data: { comment } })
 }
 
+// 审核员工作量统计
+export function getReviewerWorkload() {
+  return request({ url: '/api/admin/reviewer-workload', method: 'get' })
+}
+
+// 普通用户已通过金额汇总
+export function getUserAmountSummary() {
+  return request({ url: '/api/admin/user-amount-summary', method: 'get' })
+}
+
+// 创建管理员账号（超管直接创建）
+export function createAdmin(data) {
+  return request({ url: '/api/admin/create-admin', method: 'post', data })
+}
+
 // 拒绝注册申请
 export function rejectRegisterRequest(id, comment) {
   return request({ url: `/api/admin/register-requests/${id}/reject`, method: 'post', data: { comment } })

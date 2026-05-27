@@ -44,8 +44,9 @@ router.beforeEach((to, from, next) => {
             })
             if (to.path === '/') {
               const roles = useUserStore().roles
-              const defaultPath = roles.includes('admin_user') ? '/admin/dashboard'
-                : roles.includes('reviewer') ? '/bill/review'
+              const defaultPath = roles.includes('admin') ? '/admin/super'
+                : roles.includes('admin_user') ? '/admin/dashboard'
+                : roles.includes('reviewer') ? '/bill/manage'
                 : '/bill/manage'
               next({ path: defaultPath, replace: true })
             } else {

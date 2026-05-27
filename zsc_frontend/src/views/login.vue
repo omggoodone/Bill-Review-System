@@ -1,6 +1,27 @@
 <template>
   <div class="login">
-    <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
+
+    <!-- 初始化表单 -->
+    <el-form v-if="!initialized" ref="initRef" :model="initForm" class="login-form">
+      <div class="login-logo">
+        <img src="@/assets/logo/logo.svg" alt="logo" />
+        <h3 class="title">系统初始化</h3>
+      </div>
+      <el-form-item prop="email">
+        <el-input v-model="initForm.email" type="email" size="large" auto-complete="off" placeholder="请输入管理员邮箱">
+          <template #prefix><svg-icon icon-class="email" class="el-input__icon input-icon" /></template>
+        </el-input>
+      </el-form-item>
+      <el-form-item style="width:100%;">
+        <el-button :loading="initLoading" size="large" type="primary" style="width:100%;" @click.prevent="handleInit">
+          <span v-if="!initLoading">初始化系统</span>
+          <span v-else>初始化中...</span>
+        </el-button>
+      </el-form-item>
+    </el-form>
+
+    <!-- 登录表单 -->
+    <el-form v-else ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
       <div class="login-logo">
         <img src="@/assets/logo/logo.svg" alt="logo" />
         <h3 class="title">票据报销系统</h3>
@@ -68,7 +89,7 @@
 </template>
 
 <script setup>
-import { getCodeImg } from "@/api/login"
+import { getCodeImg, getInitStatus, initSystem } from "@/api/login"
 import Cookies from "js-cookie"
 import { encrypt, decrypt } from "@/utils/jsencrypt"
 import useUserStore from '@/store/modules/user'
@@ -99,6 +120,10 @@ const loading = ref(false)
 const captchaEnabled = ref(true)
 // 注册开关
 const register = ref(true)
+// 系统初始化
+const initialized = ref(true)
+const initLoading = ref(false)
+const initForm = ref({ email: '' })
 const redirect = ref(undefined)
 
 watch(route, (newRoute) => {
@@ -162,8 +187,33 @@ function getCookie() {
   }
 }
 
-getCode()
-getCookie()
+function handleInit() {
+  const email = initForm.value.email.trim()
+  if (!email) { proxy.$modal.msgWarning('请输入管理员邮箱'); return }
+  initLoading.value = true
+  initSystem({ email }).then(res => {
+    proxy.$alert(
+      `<div style="line-height:2;">
+        <p>用户名：<b>${res.data.userName}</b></p>
+        <p>密码：<b>${res.data.password}</b></p>
+        <p>请妥善保管以上信息</p>
+      </div>`,
+      '系统初始化成功',
+      { dangerouslyUseHTMLString: true, confirmButtonText: '已记录' }
+    ).then(() => {
+      initialized.value = true
+      getCode()
+    })
+  }).finally(() => { initLoading.value = false })
+}
+
+getInitStatus().then(res => {
+  initialized.value = res.data.initialized
+  if (initialized.value) {
+    getCode()
+    getCookie()
+  }
+})
 </script>
 
 <style lang='scss' scoped>

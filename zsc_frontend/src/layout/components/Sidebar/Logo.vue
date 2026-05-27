@@ -33,6 +33,7 @@ const title = computed(() => {
   return '票据报销系统'
 })
 const homePath = computed(() => {
+  if (userStore.roles.includes('admin')) return '/admin/super'
   if (userStore.roles.includes('admin_user')) return '/admin/dashboard'
   if (userStore.roles.includes('reviewer')) return '/bill/manage'
   return '/bill/manage'
