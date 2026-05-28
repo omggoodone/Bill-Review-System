@@ -48,6 +48,7 @@ public class SysAdminController extends BaseController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
     private BizRegisterRequestService registerRequestService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
