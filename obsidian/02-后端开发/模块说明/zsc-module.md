@@ -7,10 +7,17 @@ created: "2026-05-23"
 # zsc-module（自定义业务模块）
 
 **POM**: `zsc_backend/zsc-module/pom.xml`
-**描述**: "book 图书管理模块"
+**描述**: "票据审核系统核心业务模块（票据/审核/注册/类别/邮件）"
 **依赖**: zsc-framework, lombok, spring-boot-starter-validation, spring-boot-starter-mail, spring-boot-starter-thymeleaf, springdoc-openapi
 
-自定义业务模块，展示如何在 RuoYi 架构上构建新功能。当前实现 **BizCategory（业务类别/图书分类）** 的完整 CRUD。
+自定义业务模块。已从最初的 BizCategory CRUD 扩展为完整的票据审核系统：
+
+- **BizBill** — 票据 CRUD + 审核 + 批量审核 + 统计
+- **BizAuditLog** — 审核历史
+- **BizBillFile** — 票据附件
+- **BizRegisterRequest** — 注册申请 + 审批
+- **BizCategory** — 类别管理 + 删除保护（"其他"不可删，票据自动迁移）
+- **EmailService** — @Async 邮件通知（创建/停用/删除）
 
 ## 架构特点
 

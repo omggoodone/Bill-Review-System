@@ -1,6 +1,6 @@
-# zsc-module — 图书分类业务
+# zsc-module — 票据审核核心业务
 
-自定义业务模块，当前仅有 `BizCategory`（图书分类）CRUD。作为模块开发参考模板。
+票据审核系统的核心业务模块，包含票据、审核、注册、类别、邮件五大部分。
 
 ## 特点（与系统模块的区别）
 
@@ -13,19 +13,35 @@
 ## 包结构
 
 ```
-controller/   ← BizCategoryController（路径 /api/category）
+controller/
+  BizBillController       ← 票据 CRUD + 审核 + 批量审核 + 统计（/api/bill）
+  BizCategoryController   ← 类别管理（/api/category）
+  BizRegisterRequestController ← 注册申请（/api/register-request）
+config/
+  MailConfig.java         ← 163 SMTP 邮件配置
 domain/
-  entity/     ← BizCategory（@TableId 主键）
-  dto/        ← BizCategoryDto, query/BizCategoryQueryDto（@Valid 校验）
-  vo/         ← BizCategoryVo
-mapper/       ← BizCategoryMapper
-service/      ← BizCategoryService + impl
-common/       ← ResultVo, PageResult, GlobalCodeEnum, ServiceException, BaseEnum, EnumUtil
+  entity/                 ← BizBill, BizBillFile, BizAuditLog, BizCategory, BizRegisterRequest
+  dto/                    ← BizBillDto, BizBillReviewDto, BizCategoryDto, BizRegisterRequestDto
+  dto/query/              ← BizBillQueryDto（支持排序 sortField/sortOrder）
+  vo/                     ← BizBillVo, BizBillDetailVo, BizBillFileVo, BizAuditLogVo,
+                             BizCategoryVo, BizRegisterRequestVo,
+                             ReviewerWorkloadVo, UserAmountVo, TrendItemVo, ReviewerStatsVo
+mapper/                   ← BizBillMapper, BizBillFileMapper, BizAuditLogMapper, BizCategoryMapper, BizRegisterRequestMapper
+service/
+  BizBillService + impl   ← 票据 CRUD + 提交 + 删除 + 审核 + 统计
+  BizCategoryService + impl ← 类别 CRUD + 删除保护（"其他"不可删，票据自动迁移）
+  BizRegisterRequestService + impl ← 注册申请 + 审批 + 自动生成用户名密码
+  EmailService            ← @Async 邮件发送（创建/停用/删除通知）
+common/                   ← ResultVo, PageResult, GlobalCodeEnum, ServiceException, BaseEnum, EnumUtil
 ```
 
 ## 关键约定
 
-- 权限前缀统一 `biz:category:*`（如 `biz:category:list`, `biz:category:add`）
+- 权限前缀：`biz:bill:*` / `biz:category:*` / `biz:admin:list`
+- 票据状态：0-草稿 1-已提交 2-已通过 3-已退回
+- 审核意见：1-通过 2-退回
 - ServiceImpl 继承 MyBatis-Plus `ServiceImpl<M, T>`
 - Dto 用 Lombok `@Data @Builder @NoArgsConstructor @AllArgsConstructor`
-- 注意：`ResultVo` 和系统的 `AjaxResult` 是两套体系，别混用
+- `ResultVo` 和系统的 `AjaxResult` 是两套体系，别混用
+- 类别删除：删前将关联票据 category_id 迁移到"其他"
+- 数据过滤：超管看全量，审核员按 auditBy，用户按 createBy

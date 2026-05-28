@@ -32,6 +32,7 @@ import com.zsc.common.utils.poi.ExcelUtil;
 import com.zsc.system.service.ISysDeptService;
 import com.zsc.system.service.ISysPostService;
 import com.zsc.system.service.ISysRoleService;
+import com.zsc.module.service.EmailService;
 import com.zsc.system.service.ISysUserService;
 import com.zsc.framework.web.service.TokenService;
 
@@ -58,6 +59,9 @@ public class SysUserController extends BaseController
 
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private EmailService emailService;
 
     /**
      * 获取用户列表
@@ -189,12 +193,16 @@ public class SysUserController extends BaseController
         {
             return error("当前用户不能删除");
         }
+        // 删除前记录邮箱并发送通知
+        for (Long userId : userIds) {
+            SysUser u = userService.selectUserById(userId);
+            if (u != null && StringUtils.isNotEmpty(u.getEmail())) {
+                emailService.sendAccountDisabled(u.getEmail(), u.getUserName(), "您的账号已被管理员删除。");
+            }
+        }
         int rows = userService.deleteUserByIds(userIds);
-        // 删除用户时同时删除登录token，强制下线
-        if (rows > 0)
-        {
-            for (Long userId : userIds)
-            {
+        if (rows > 0) {
+            for (Long userId : userIds) {
                 tokenService.deleteLoginUserByUserId(userId);
             }
         }
@@ -233,9 +241,12 @@ public class SysUserController extends BaseController
         userService.checkUserDataScope(user.getUserId());
         user.setUpdateBy(getUsername());
         int rows = userService.updateUserStatus(user);
-        // 停用账号时立即删除登录token，强制下线
         if (rows > 0 && UserConstants.USER_DISABLE.equals(user.getStatus()))
         {
+            SysUser u = userService.selectUserById(user.getUserId());
+            if (u != null && StringUtils.isNotEmpty(u.getEmail())) {
+                emailService.sendAccountDisabled(u.getEmail(), u.getUserName(), "您的账号已被管理员停用，如有疑问请联系管理员。");
+            }
             tokenService.deleteLoginUserByUserId(user.getUserId());
         }
         return toAjax(rows);

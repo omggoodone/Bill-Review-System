@@ -14,20 +14,26 @@ Spring Boot 3.5.x 单体应用唯一启动模块（端口 8080），聚合所有
 web/controller/
   common/     ← CaptchaController, CommonController（验证码、文件上传下载）
   monitor/    ← CacheController, ServerController, SysLogininforController, SysOperlogController, SysUserOnlineController
-  system/     ← 登录/注册 + 用户/角色/菜单/部门/岗位/字典/通知/配置（14个 Controller）
+  system/     ← SysLoginController, SysRegisterController, SysInitController,
+                SysAdminController（管理端接口：stats/users/workload/create-admin/register-requests）,
+                SysUserController, SysRoleController, SysMenuController, SysDeptController,
+                SysPostController, SysDictDataController, SysDictTypeController,
+                SysConfigController, SysNoticeController, SysProfileController, SysIndexController
   tool/       ← TestController
 resources/
   application.yml          ← 主配置（端口/Redis/日志等）
-  application-druid.yml    ← 数据源配置（修改密码在这里）
+  application-druid.yml    ← 数据源 + 邮件配置
   logback.xml
 ```
 
 ## 关键约定
 
 - Controller 统一继承 `BaseController`（zsc-common），用 `startPage()` 构建分页，`getDataTable()` / `success()` / `error()` 返回
-- 权限：`@PreAuthorize("@ss.hasPermi('system:user:list')")` — 由 zsc-framework 的 PermissionService 执行
+- 权限：`@PreAuthorize("@ss.hasPermi('xxx')")` — 由 zsc-framework 的 PermissionService 执行
 - 操作日志：`@Log(title, businessType)` → zsc-framework 的 LogAspect 自动记录
 - 响应体：系统模块用 `AjaxResult` / `TableDataInfo`，来源 zsc-common
+- `@Anonymous` 注解标记免登录接口（如 `/api/init/**`），由 PermitAllUrlProperties 自动收集白名单
+- 邮件配置在 `application-druid.yml` 的 `mail.*` 下，163 SMTP/SSL/465
 
 ## 聚合的子模块
 

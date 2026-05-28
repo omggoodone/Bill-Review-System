@@ -66,7 +66,7 @@ created: "2026-05-23"
 
 | 类 | Bean 名 | 职责 |
 |----|---------|------|
-| `TokenService` | — | JWT 创建/解析/刷新。键: `login_tokens:<uuid>`，过期 30min，剩余 < 20min 自动续期 |
+| `TokenService` | — | JWT 创建/解析/刷新/Redis 存储。键: `login_tokens:{uuid}` + `login_user_ids:{userId}`（强制下线映射）。停用/删除用户时调 `deleteLoginUserByUserId()` 清除 token，下次请求 401 |
 | `PermissionService` | `"ss"` | `@PreAuthorize("@ss.hasPermi('xxx')")` / `@ss.hasRole()` / `@ss.hasAnyRoles()` 的权限判断 |
 | `SysLoginService` | — | 登录业务: 验证码校验 → 密码校验 (带重试锁定) → 创建令牌 |
 | `SysRegisterService` | — | 注册业务 |

@@ -51,7 +51,9 @@ created: "2026-05-23"
 | `SysNoticeController` | `/system/notice` | 通知公告 CRUD |
 | `SysPostController` | `/system/post` | 岗位管理 |
 | `SysProfileController` | `/system/user/profile` | 个人资料修改/头像上传 |
-| `SysRegisterController` | `/register` | 用户注册 |
+| `SysRegisterController` | `/register` | 用户注册（提交邮箱申请） |
+| `SysInitController` | `/api/init` | 系统初始化（无用户时创建超管，@Anonymous 免登录） |
+| `SysAdminController` | `/api/admin` | 管理端接口（stats/users/workload/create-admin/register-requests） |
 | `SysRoleController` | `/system/role` | 角色管理 + 权限分配 |
 | `SysUserController` | `/system/user` | 用户 CRUD、密码重置、状态切换 |
 

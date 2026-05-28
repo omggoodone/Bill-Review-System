@@ -1,3 +1,11 @@
+# 邮件配置（163邮箱）
+mail:
+    host: smtp.163.com
+    port: 465
+    username: 13428095299@163.com
+    password: NCVPiGwxuk6ddzZs
+    from: 13428095299@163.com
+
 # 数据源配置
 spring:
     datasource:

@@ -1,32 +1,5 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" :inline="true" class="search-form">
-      <el-form-item prop="userName">
-        <template #label><svg-icon icon-class="search" /></template>
-        <el-input v-model="queryParams.userName" placeholder="用户名" clearable style="width: 160px" @keyup.enter="handleQuery" />
-      </el-form-item>
-      <el-form-item v-if="!isSuperAdmin" prop="roleKey">
-        <template #label><svg-icon icon-class="peoples" /></template>
-        <el-select v-model="queryParams.roleKey" placeholder="角色" clearable style="width: 120px">
-          <el-option label="普通用户" value="user" />
-          <el-option label="审核员" value="reviewer" />
-        </el-select>
-      </el-form-item>
-      <el-form-item prop="status">
-        <template #label><svg-icon icon-class="switch" /></template>
-        <el-select v-model="queryParams.status" placeholder="状态" clearable style="width: 100px">
-          <el-option v-for="d in sys_normal_disable" :key="d.value" :label="d.label" :value="d.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" circle native-type="button" @click="handleQuery" />
-        <el-button type="primary" circle native-type="button" @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
-      </el-form-item>
-      <el-form-item v-if="isSuperAdmin">
-        <el-button type="danger" icon="Plus" @click="openCreateDialog">新增管理员</el-button>
-      </el-form-item>
-    </el-form>
-
     <!-- 新增管理员弹窗 -->
     <el-dialog v-model="createDialogVisible" title="新增管理员" width="420px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="80px">
@@ -40,7 +13,39 @@
       </template>
     </el-dialog>
 
-    <el-table v-loading="loading" :data="userList">
+    <!-- 工具栏行：批量操作 + 搜索表单 -->
+    <div class="toolbar-row">
+      <el-button v-if="isSuperAdmin" type="danger" icon="Plus" style="margin-right: 12px;" @click="openCreateDialog">新增管理员</el-button>
+      <el-button type="success" plain icon="Select" :disabled="ids.length === 0" @click="handleBatchStatus('0')">批量启用</el-button>
+      <el-button type="warning" plain icon="CloseBold" :disabled="ids.length === 0" @click="handleBatchStatus('1')">批量停用</el-button>
+      <el-button type="danger" plain icon="Delete" :disabled="ids.length === 0" style="margin-right: 16px;" @click="handleBatchDelete">批量删除</el-button>
+      <el-form :model="queryParams" ref="queryFormRef" :inline="true" class="search-form">
+        <el-form-item prop="userName">
+          <template #label><svg-icon icon-class="search" /></template>
+          <el-input v-model="queryParams.userName" placeholder="用户名" clearable style="width: 130px" @keyup.enter="handleQuery" />
+        </el-form-item>
+        <el-form-item v-if="!isSuperAdmin" prop="roleKey">
+          <template #label><svg-icon icon-class="peoples" /></template>
+          <el-select v-model="queryParams.roleKey" placeholder="角色" clearable style="width: 100px">
+            <el-option label="普通用户" value="user" />
+            <el-option label="审核员" value="reviewer" />
+          </el-select>
+        </el-form-item>
+        <el-form-item prop="status">
+          <template #label><svg-icon icon-class="switch" /></template>
+          <el-select v-model="queryParams.status" placeholder="状态" clearable style="width: 100px">
+            <el-option v-for="d in sys_normal_disable" :key="d.value" :label="d.label" :value="d.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="Search" circle native-type="button" @click="handleQuery" />
+          <el-button type="primary" circle native-type="button" @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="用户名" align="center" prop="userName" min-width="120" />
       <el-table-column label="邮箱" align="center" prop="email" min-width="160" :show-overflow-tooltip="true" />
       <el-table-column label="手机" align="center" prop="phonenumber" width="130" />
@@ -93,6 +98,7 @@ const isSuperAdmin = computed(() => userStore.roles.includes('admin'))
 const userList = ref([])
 const loading = ref(false)
 const total = ref(0)
+const ids = ref([])
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref(null)
@@ -181,6 +187,31 @@ function handleCreate() {
   })
 }
 
+function handleSelectionChange(selection) {
+  ids.value = selection.map(s => s.userId)
+}
+
+function handleBatchStatus(status) {
+  const label = status === '0' ? '启用' : '停用'
+  proxy.$modal.confirm(`确认批量${label}选中的 ${ids.value.length} 名用户吗？`).then(() => {
+    Promise.all(ids.value.map(id => changeUserStatus(id, status))).then(() => {
+      proxy.$modal.msgSuccess(`批量${label}成功`)
+      ids.value = []
+      getList()
+    })
+  })
+}
+
+function handleBatchDelete() {
+  proxy.$modal.confirm(`确认批量删除选中的 ${ids.value.length} 名用户吗？此操作不可恢复！`).then(() => {
+    Promise.all(ids.value.map(id => delUser(id))).then(() => {
+      proxy.$modal.msgSuccess('批量删除成功')
+      ids.value = []
+      getList()
+    })
+  })
+}
+
 function handleDelete(row) {
   proxy.$modal.confirm(`确认删除用户「${row.userName}」？`).then(() => {
     delUser(row.userId).then(() => { proxy.$modal.msgSuccess('删除成功'); getList() })
@@ -191,9 +222,9 @@ onMounted(() => getList())
 </script>
 
 <style scoped lang="scss">
-.search-form {
-  margin-bottom: 16px;
-  :deep(.el-form-item) { margin-right: 8px; margin-bottom: 0; }
-  :deep(.el-form-item__label) { display: flex; align-items: center; }
+.toolbar-row {
+  display: flex; align-items: center; margin-bottom: 10px;
 }
+.search-form :deep(.el-form-item) { margin-right: 4px; margin-bottom: 0; }
+.search-form :deep(.el-form-item__label) { display: flex; align-items: center; }
 </style>

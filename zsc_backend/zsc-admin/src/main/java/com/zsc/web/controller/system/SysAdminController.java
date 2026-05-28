@@ -11,6 +11,7 @@ import com.zsc.module.service.BizBillService;
 import com.zsc.common.utils.SecurityUtils;
 import com.zsc.module.common.exception.ServiceException;
 import com.zsc.module.service.BizRegisterRequestService;
+import com.zsc.module.service.EmailService;
 import com.zsc.system.mapper.SysUserMapper;
 import com.zsc.system.mapper.SysUserRoleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,8 @@ public class SysAdminController extends BaseController {
     private BizBillService billService;
 
     @Autowired
+    private EmailService emailService;
+
     private BizRegisterRequestService registerRequestService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -201,6 +204,8 @@ List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user"
         ur.setUserId(user.getUserId());
         ur.setRoleId(5L);
         userRoleMapper.batchUserRole(java.util.Collections.singletonList(ur));
+
+        emailService.sendCredentials(email, username, rawPassword, "系统管理员");
 
         Map<String, Object> result = new HashMap<>();
         result.put("userName", username);

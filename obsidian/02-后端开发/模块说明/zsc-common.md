@@ -140,6 +140,13 @@ BaseException (base/)
 |----|------|
 | `RuoYiConfig` | 应用配置: name, version, copyright, profile, captchaType |
 
+## 关键约定
+
+- **`SysUser.isAdmin()`**: 按 `role_key='admin'` 判断（兼容旧 `userId==1`），不再硬编码用户 ID
+- **响应体系**: 系统模块用 `AjaxResult`，业务模块(zsc-module)用 `ResultVo`，两套体系别混用
+- **实体继承**: 普通表 `extends BaseEntity`，树形表 `extends TreeEntity`
+- **字典颜色**: `dict-tag` 的 tag 颜色由 `list_class` 字段控制，非 `css_class`
+
 ## 相关笔记
 
 - [[zsc-system]] — 使用方

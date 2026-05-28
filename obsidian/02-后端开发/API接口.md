@@ -142,6 +142,18 @@ created: "2026-05-23"
 | GET | `/register-requests` | 待审核注册申请列表 | `biz:admin:list` |
 | POST | `/register-requests/{id}/approve` | 通过注册申请（生成账号密码） | `biz:admin:list` |
 | POST | `/register-requests/{id}/reject` | 拒绝注册申请 | `biz:admin:list` |
+| GET | `/reviewer-workload` | 审核员工作量统计（审核数/通过数/退回数） | `system:user:list` |
+| GET | `/user-amount-summary` | 用户提交金额汇总统计 | `system:user:list` |
+| POST | `/create-admin` | 创建管理员账号 | `system:user:add` |
+
+> 邮件通知: 注册审批通过时自动发送账号密码到用户邮箱；账号禁用/删除时也会发送邮件通知。EmailService 使用 `@Async` 异步发送，不阻塞主流程。
+
+## 系统初始化 `/api/init`
+
+| 方法 | 路径 | 说明 | 匿名 |
+|------|------|------|------|
+| GET | `/status` | 检查系统是否已初始化（admin 密码是否已修改） | 是 |
+| POST | — | 首次初始化（设置 admin 密码、系统名称等） | 是 |
 
 ## 业务接口 `/api/category`
 
@@ -167,6 +179,7 @@ created: "2026-05-23"
 | POST | `/submit/{id}` | 提交草稿进入审核流程 | `biz:bill:add` |
 | DELETE | `/{id}` | 删除草稿票据及其附件 | `biz:bill:remove` |
 | POST | `/review` | 审核票据（通过/退回） | `biz:bill:review` |
+| POST | `/batch-review` | 批量审核票据（{ids, action, comment}） | `biz:bill:review` |
 
 ## 代码生成器 `/tool/gen`
 

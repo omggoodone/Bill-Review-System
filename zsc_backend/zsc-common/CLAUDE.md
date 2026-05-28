@@ -23,6 +23,7 @@ filter/       ← XSS 过滤, RepeatableRequest 等 Servlet Filter
 
 ## 关键约定
 
+- `SysUser.isAdmin()`：按角色 `role_key='admin'` 判断（兼容旧 user_id==1 逻辑）
 - 统一响应：系统模块用 `AjaxResult`，业务模块(zsc-module)用自己的一套 `ResultVo`
 - 实体继承：普通表实体 extends `BaseEntity`，树形表 extends `TreeEntity`
 - 脱敏：`@Sensitive` 注解 + `SensitiveJsonSerializer` Jackson 序列化

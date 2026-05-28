@@ -1,12 +1,13 @@
-# ZSC 前端 — Vue 3 后台管理界面
+# ZSC 前端 — 票据审核系统 Vue 3 界面
 
 基于 RuoYi-Vue 模板，Vue 3.5 + Vite 5 + Element Plus 2.13 + Pinia 3。
 
 ## 核心机制
 
-### 登录 → 动态路由注册（最重要）
+### 登录 → 系统初始化 → 动态路由注册
 
 ```
+0. GET /api/init/status → 无用户时显示初始化表单（输邮箱 → 创建超管）
 1. POST /login → 拿到 token → Cookie 存储
 2. GET /getInfo → 拿到 roles[], permissions[] → user store
 3. GET /getRouters → 拿到菜单 JSON 树 [{path, component, meta, children}]
@@ -16,54 +17,61 @@
    → router.addRoute() 逐一注册
 ```
 
+### 四角色登录跳转（permission.js）
+
+| 角色 | role_key | 登录后跳转 |
+|------|----------|-----------|
+| 超管 | admin | `/admin/super` |
+| 管理员 | admin_user | `/admin/dashboard` |
+| 审核员 | reviewer | `/bill/manage` |
+| 普通用户 | user | `/bill/manage` |
+
 ### 权限控制（三级）
 
 | 级别 | 机制 | 位置 |
 |------|------|------|
-| 路由级 | `roles: ['admin']` / `permissions: ['system:user:list']` | `router/index.js` |
-| 按钮级 | `v-hasPermi="['system:user:add']"` / `v-hasRole="['admin']"` | 页面 `.vue` |
+| 路由级 | `permissions: ['biz:admin:list']` | `router/index.js` |
+| 按钮级 | `v-hasPermi="['system:user:add']"` | 页面 `.vue` |
 | 请求级 | 后端 `@PreAuthorize` 拦截 | Controller |
 
 ### 请求链路
 
 ```
 页面 → api/*.js → Axios instance (baseURL: /dev-api)
-  → 请求拦截器：注入 Authorization: Bearer <token> + 防重复提交（sessionStorage 指纹）
+  → 请求拦截器：注入 Authorization: Bearer <token> + 防重复提交
   → Vite proxy：去掉 /dev-api → http://localhost:8080/*
   → 响应拦截器：code 200 放行 / 401 弹登录过期框 / 500 消息提示
 ```
 
-## 关键文件
+## 页面结构
 
 ```
-src/
-  main.js                  ← 注册 Pinia/Router/指令/全局组件
-  permission.js             ← 路由守卫 beforeEach（token 校验 + 动态路由加载）
-  router/index.js           ← constantRoutes + dynamicRoutes
-  utils/request.js          ← Axios 封装（token 注入 + 防重复提交 + 错误处理）
-  utils/auth.js             ← Cookie Token 读写
-  store/modules/
-    user.js                 ← token/roles/permissions/登录/登出/用户信息
-    permission.js           ← generateRoutes() 动态路由
-    settings.js             ← 主题/布局（localStorage 持久化）
-    tagsView.js             ← 标签页导航
-    dict.js                 ← 字典数据缓存
-  layout/index.vue          ← Sidebar + Navbar + TagsView + <router-view>
-  directive/
-    permission/v-hasPermi   ← 按钮级权限指令
-    permission/v-hasRole    ← 角色级权限指令
-  views/
-    login.vue               ← 登录页（验证码 + 记住密码加密）
-    index.vue               ← 仪表盘首页（图书统计 + ECharts）
-    system/                 ← 用户/角色/菜单/部门/岗位/字典/配置/通知
-    monitor/                ← 在线用户/日志/定时任务/缓存/服务器/Druid
-    biz/bizCategory/        ← 图书分类 CRUD
-    tool/gen/               ← 代码生成器
+views/
+  login.vue                 ← 登录页（含系统初始化表单）
+  register.vue              ← 注册页
+  index.vue                 ← 仪表盘首页（按角色：审核员/普通用户两套视图）
+  system/                   ← 用户/角色/菜单/部门/岗位/字典/配置/通知
+    user/profile/           ← 个人中心（关闭时跳转角色概览页）
+  admin/
+    super/index.vue         ← 超管仪表盘（8卡片+5图表+快捷操作）
+  biz/
+    admin/
+      index.vue             ← 管理员仪表盘（7卡片+2图表+注册审批表）
+      user/index.vue        ← 用户管理（分页+批量+增删停用重置）
+      register/index.vue    ← 注册审核
+    bill/
+      index.vue             ← 我的票据（Tab+搜索+排序+CRUD+批量操作）
+      review/index.vue      ← 票据审核（搜索+排序+批量通过/退回+积压筛选）
+      manage/index.vue      ← 票据概览（审核员/用户两套仪表盘）
+      components/BillForm   ← 票据表单（新增/编辑/详情）
+    bizCategory/index.vue   ← 类别管理（"其他"不可选/删/改）
 ```
 
-## 约定
+## 关键约定
 
-- 开发代理 `/dev-api` → `http://localhost:8080`，生产用 `/prod-api`
-- 前端端口 80，自动打开浏览器
-- 布局模式 `navType`: 1=纯侧边栏, 2=混合, 3=纯顶部；992px 断点切换移动端
-- 字典数据通过 `dict.js` Pinia store 缓存，不用每次请求
+- 开发代理 `/dev-api` → `http://localhost:8080`
+- 图标库：`src/assets/icons/svg/`（stale.svg 等）
+- API 层：`src/api/biz/admin.js`（管理端）、`src/api/biz/bill.js`（票据）
+- 字典数据：dice-tag 颜色由 `list_class` 字段控制（非 `css_class`）
+- 个人中心关闭：所有角色跳转到各自概览页
+- 超管动态路由 `/admin/super` 通过 `router/index.js` dynamicRoutes 注册

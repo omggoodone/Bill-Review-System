@@ -5,6 +5,7 @@ import com.zsc.common.core.controller.BaseController;
 import com.zsc.common.core.domain.AjaxResult;
 import com.zsc.common.core.domain.entity.SysUser;
 import com.zsc.common.utils.SecurityUtils;
+import com.zsc.module.service.EmailService;
 import com.zsc.system.mapper.SysUserMapper;
 import com.zsc.system.mapper.SysUserRoleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class SysInitController extends BaseController {
 
     @Autowired
     private SysUserRoleMapper userRoleMapper;
+
+    @Autowired
+    private EmailService emailService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -73,6 +77,8 @@ public class SysInitController extends BaseController {
         ur.setUserId(user.getUserId());
         ur.setRoleId(1L);  // admin 角色
         userRoleMapper.batchUserRole(java.util.Collections.singletonList(ur));
+
+        emailService.sendCredentials(email, username, rawPassword, "超级管理员");
 
         Map<String, Object> result = new HashMap<>();
         result.put("userName", username);

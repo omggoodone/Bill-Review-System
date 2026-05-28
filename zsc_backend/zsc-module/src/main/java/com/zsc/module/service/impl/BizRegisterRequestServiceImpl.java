@@ -10,6 +10,7 @@ import com.zsc.module.domain.entity.BizRegisterRequest;
 import com.zsc.module.domain.vo.BizRegisterRequestVo;
 import com.zsc.module.mapper.BizRegisterRequestMapper;
 import com.zsc.module.service.BizRegisterRequestService;
+import com.zsc.module.service.EmailService;
 import com.zsc.system.mapper.SysUserMapper;
 import com.zsc.system.mapper.SysUserRoleMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +34,9 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
 
     @Autowired
     private SysUserRoleMapper userRoleMapper;
+
+    @Autowired
+    private EmailService emailService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -90,6 +94,9 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
         ur.setUserId(user.getUserId());
         ur.setRoleId(roleId);
         userRoleMapper.batchUserRole(java.util.Collections.singletonList(ur));
+
+        String roleLabel = "reviewer".equals(req.getRoleKey()) ? "票据审核员" : "普通用户";
+        emailService.sendCredentials(req.getEmail(), username, rawPassword, roleLabel);
 
         req.setStatus("1");
         req.setGeneratedUsername(username);

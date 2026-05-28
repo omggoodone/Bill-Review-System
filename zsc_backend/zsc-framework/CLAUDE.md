@@ -7,8 +7,11 @@ Spring Boot 3 的安全与基础设施模块。依赖 `zsc-system`（调用其 S
 ### 安全链路（最重要）
 ```
 SecurityConfig.java           ← SecurityFilterChain 定义：CSRF 关闭、Stateless 会话、白名单、JWT Filter 插入位置
-JwtAuthenticationTokenFilter  ← OncePerRequestFilter，每次请求从 Header 取 Bearer token，解析 JWT → Redis 查 LoginUser → 写入 SecurityContext
+JwtAuthenticationTokenFilter  ← OncePerRequestFilter，取 Bearer token → Redis 查 LoginUser → 写入 SecurityContext
+                                Redis 无数据 + 有 Authorization 头 → 返回 401（强制下线提示）
 TokenService.java             ← JWT 创建/解析/刷新/Redis 存储
+                                新增 deleteLoginUserByUserId()：按用户 ID 删除 token（停用/删除时强制下线）
+                                refreshToken 同步维护 userId→token 映射（login_user_ids:）
 PermissionService.java        ← @PreAuthorize("@ss.hasPermi('xxx')") 的实际执行者
 UserDetailsServiceImpl.java   ← Spring Security 的 loadUserByUsername 实现
 SysLoginService.java          ← 登录业务（验证码校验 + 密码匹配 + Token 签发）
@@ -41,7 +44,10 @@ web/domain/server/  ← Cpu, Jvm, Mem, Sys, SysFile (OSHI 采集)
 
 ## 关键约定
 
-- JWT token 30分钟过期，存 Redis，Header: `Authorization: Bearer <token>`
+- JWT token 30分钟过期，存 Redis（key: `login_tokens:{uuid}`），Header: `Authorization: Bearer <token>`
+- userId→token 映射存 Redis（key: `login_user_ids:{userId}`），用于按用户强制下线
+- 停用/删除用户时调用 `deleteLoginUserByUserId()` 清除 Redis token，下次请求返回 401
 - `@PreAuthorize("@ss.hasPermi('xxx')")` 的 `ss` 是 PermissionService 的 bean name
+- `isAdmin()` 判断：检查用户是否持有 `role_key='admin'`（不再硬编码 userId==1）
 - 白名单 URL 通过 `@Anonymous` 注解 + `PermitAllUrlProperties` 自动收集
 - 数据权限通过 `@DataScope(deptAlias, userAlias)` + AOP 在原 SQL 上拼接 WHERE 条件
