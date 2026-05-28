@@ -1,7 +1,7 @@
 <template>
   <div>
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+    <el-form :model="queryParams" :inline="true" class="search-form">
+      <el-form-item>
         <el-button
           type="primary"
           plain
@@ -9,8 +9,6 @@
           @click="handleAdd"
           v-hasPermi="['biz:category:add']"
         >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
         <el-button
           type="danger"
           plain
@@ -19,8 +17,38 @@
           @click="handleDelete"
           v-hasPermi="['biz:category:remove']"
         >删除</el-button>
-      </el-col>
-    </el-row>
+      </el-form-item>
+      <el-form-item prop="categoryName">
+        <template #label><svg-icon icon-class="search" /></template>
+        <el-input
+          v-model="queryParams.categoryName"
+          placeholder="类别名称"
+          clearable
+          style="width: 160px"
+          @keyup.enter="handleQuery"
+        />
+      </el-form-item>
+      <el-form-item prop="status">
+        <template #label><svg-icon icon-class="switch" /></template>
+        <el-select
+          v-model="queryParams.status"
+          placeholder="状态"
+          clearable
+          style="width: 100px"
+        >
+          <el-option
+            v-for="dict in sys_normal_disable"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="Search" circle @click="handleQuery" />
+        <el-button type="primary" circle @click="resetQuery"><svg-icon icon-class="reset" /></el-button>
+      </el-form-item>
+    </el-form>
 
     <el-table v-loading="loading" :data="categoryList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" :selectable="row => row.categoryName !== '其他'" />
@@ -92,7 +120,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['add', 'update', 'delete', 'query', 'pagination', 'update:pageNum', 'update:pageSize'])
+const emit = defineEmits(['add', 'update', 'delete', 'query', 'reset', 'pagination', 'update:pageNum', 'update:pageSize'])
 
 const ids = ref([])
 const multiple = ref(true)
@@ -130,6 +158,11 @@ function handleQuery() {
   emit('query')
 }
 
+/** 重置按钮操作 */
+function resetQuery() {
+  emit('reset')
+}
+
 /** 分页操作 */
 function handlePagination() {
   emit('pagination')
@@ -138,4 +171,15 @@ function handlePagination() {
 
 <style scoped>
 .default-tip { color: var(--el-text-color-secondary); font-size: 12px; }
+.search-form {
+  margin-bottom: 16px;
+}
+.search-form :deep(.el-form-item) {
+  margin-right: 8px;
+  margin-bottom: 0;
+}
+.search-form :deep(.el-form-item__label) {
+  display: flex;
+  align-items: center;
+}
 </style>

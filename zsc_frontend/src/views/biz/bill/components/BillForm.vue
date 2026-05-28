@@ -10,7 +10,7 @@
         <template v-if="form.files && form.files.length > 0">
           <div v-for="(file, idx) in form.files" :key="idx" class="file-link">
             <el-icon><Link /></el-icon>
-            <a :href="file.filePath" target="_blank">{{ file.fileName }}</a>
+            <a :href="`${baseUrl}${file.filePath}`" target="_blank">{{ file.fileName }}</a>
           </div>
         </template>
         <span v-else>-</span>
@@ -97,6 +97,7 @@ import { listBizCategory } from "@/api/biz/bizCategory"
 
 const { proxy } = getCurrentInstance()
 const { biz_bill_status } = proxy.useDict("biz_bill_status")
+const baseUrl = import.meta.env.VITE_APP_BASE_API
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

@@ -1,14 +1,6 @@
 <template>
   <div class="app-container">
-    <!-- 搜索组件 -->
-    <SearchForm
-      ref="searchFormRef"
-      :queryParams="queryParams"
-      @query="handleQuery"
-      @reset="handleReset"
-    />
-
-    <!-- 列表组件 -->
+    <!-- 列表组件（含搜索表单和操作按钮） -->
     <CategoryTable
       :categoryList="categoryList"
       :loading="loading"
@@ -20,6 +12,7 @@
       @update="handleUpdate"
       @delete="handleDelete"
       @query="handleQuery"
+      @reset="handleReset"
       @pagination="getList"
     />
 
@@ -36,7 +29,6 @@
 
 <script setup name="BizCategory">
 import { listBizCategory, getBizCategory } from "@/api/biz/bizCategory"
-import SearchForm from "./components/SearchForm.vue"
 import CategoryTable from "./components/CategoryTable.vue"
 import CategoryForm from "./components/CategoryForm.vue"
 
@@ -57,7 +49,6 @@ const queryParams = ref({
 
 const form = ref({})
 
-const searchFormRef = ref(null)
 const categoryFormRef = ref(null)
 
 /** 查询业务类别列表 */
@@ -78,6 +69,8 @@ function handleQuery() {
 
 /** 重置按钮操作 */
 function handleReset() {
+  queryParams.value.categoryName = undefined
+  queryParams.value.status = undefined
   handleQuery()
 }
 
