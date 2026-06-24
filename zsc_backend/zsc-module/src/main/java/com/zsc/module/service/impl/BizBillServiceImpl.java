@@ -239,9 +239,9 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
             throw new ServiceException("系统错误，票据更新失败！");
         }
 
-        // 仅当传入了新附件时才替换旧附件
+        // 仅当传入了新附件时才替换旧附件（含磁盘文件）
         if (StringUtils.isNotBlank(dto.getAttachment())) {
-            fileMapper.delete(new LambdaQueryWrapper<BizBillFile>()
+            deleteFilesAndRecords(new LambdaQueryWrapper<BizBillFile>()
                 .eq(BizBillFile::getBillId, bill.getId()));
             saveAttachments(bill.getId(), dto.getAttachment());
         }
@@ -303,8 +303,8 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
             throw new ServiceException("只能删除自己的票据！");
         }
 
-        // 先删附件，再删票据
-        fileMapper.delete(new LambdaQueryWrapper<BizBillFile>()
+        // 先删附件（含磁盘文件），再删票据
+        deleteFilesAndRecords(new LambdaQueryWrapper<BizBillFile>()
             .eq(BizBillFile::getBillId, id));
         this.removeById(id);
     }
@@ -353,6 +353,19 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     }
 
     // ==================== 附件 ====================
+
+    /**
+     * 删除附件记录及磁盘文件
+     */
+    private void deleteFilesAndRecords(LambdaQueryWrapper<BizBillFile> wrapper) {
+        List<BizBillFile> files = fileMapper.selectList(wrapper);
+        for (BizBillFile f : files) {
+            String diskPath = com.zsc.common.config.RuoYiConfig.getProfile()
+                + f.getFilePath().replace(com.zsc.common.constant.Constants.RESOURCE_PREFIX, "");
+            new java.io.File(diskPath).delete();
+        }
+        fileMapper.delete(wrapper);
+    }
 
     /**
      * 解析附件路径字符串，创建附件记录
@@ -576,8 +589,8 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
 
         List<Long> billIds = bills.stream().map(BizBill::getId).toList();
 
-        // 删附件
-        fileMapper.delete(
+        // 删附件（含磁盘文件）
+        deleteFilesAndRecords(
             new LambdaQueryWrapper<BizBillFile>().in(BizBillFile::getBillId, billIds));
         // 删审核记录
         auditLogMapper.delete(
