@@ -10,6 +10,7 @@ import com.zsc.module.domain.vo.UserAmountVo;
 import com.zsc.module.service.BizBillService;
 import com.zsc.common.utils.SecurityUtils;
 import com.zsc.module.common.exception.ServiceException;
+import com.zsc.module.common.tools.UserAccountUtils;
 import com.zsc.module.service.BizRegisterRequestService;
 import com.zsc.module.service.EmailService;
 import com.zsc.system.mapper.SysUserMapper;
@@ -18,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.SecureRandom;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -51,8 +51,6 @@ public class SysAdminController extends BaseController {
     @Autowired
     private BizRegisterRequestService registerRequestService;
 
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
     @PreAuthorize("@ss.hasPermi('biz:admin:list')")
     @GetMapping("/stats")
@@ -145,8 +143,8 @@ public class SysAdminController extends BaseController {
     @GetMapping("/user-amount-summary")
     public AjaxResult userAmountSummary() {
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysUser> bigPage =
-    new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 9999);
-List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user", null, null);
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 9999);
+        List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user", null, null);
         java.util.Set<String> userNames = normalUsers.stream()
             .map(SysUser::getUserName)
             .collect(Collectors.toSet());
@@ -188,8 +186,8 @@ List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user"
             return error("该邮箱已被使用");
         }
 
-        String rawPassword = generatePassword();
-        String username = generateUsername(email);
+        String rawPassword = UserAccountUtils.generatePassword();
+        String username = UserAccountUtils.generateUsername(email, "admin", userMapper);
 
         SysUser user = new SysUser();
         user.setUserName(username);
@@ -200,10 +198,11 @@ List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user"
         user.setPwdUpdateDate(new Date());
         userMapper.insertUser(user);
 
-        // 分配 admin_user 角色 (role_id=5)
+        // 分配 admin_user 角色
+        Long adminRoleId = getRoleIdByKey("admin_user");
         com.zsc.system.domain.SysUserRole ur = new com.zsc.system.domain.SysUserRole();
         ur.setUserId(user.getUserId());
-        ur.setRoleId(5L);
+        ur.setRoleId(adminRoleId);
         userRoleMapper.batchUserRole(java.util.Collections.singletonList(ur));
 
         emailService.sendCredentials(email, username, rawPassword, "系统管理员");
@@ -215,26 +214,11 @@ List<SysUser> normalUsers = userMapper.selectUserWithRoles(bigPage, null, "user"
         return success(result);
     }
 
-    private String generateUsername(String email) {
-        String prefix = email.substring(0, email.indexOf('@'))
-            .replaceAll("[^a-zA-Z0-9]", "");
-        if (prefix.isEmpty()) prefix = "admin";
-
-        String candidate = prefix;
-        int tries = 0;
-        while (tries < 20) {
-            if (userMapper.selectUserByUserName(candidate) == null) return candidate;
-            candidate = prefix + "_" + (1000 + RANDOM.nextInt(9000));
-            tries++;
+    private Long getRoleIdByKey(String roleKey) {
+        com.zsc.common.core.domain.entity.SysRole role = roleMapper.checkRoleKeyUnique(roleKey);
+        if (role == null) {
+            throw new ServiceException("系统错误：角色[" + roleKey + "]不存在");
         }
-        throw new ServiceException("无法生成唯一用户名");
-    }
-
-    private String generatePassword() {
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) {
-            sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
-        }
-        return sb.toString();
+        return role.getRoleId();
     }
 }

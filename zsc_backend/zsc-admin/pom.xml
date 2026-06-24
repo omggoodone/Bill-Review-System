@@ -56,7 +56,7 @@
             <artifactId>zsc-generator</artifactId>
         </dependency>
 
-        <!-- 图书管理模块-->
+        <!-- 票据业务模块-->
         <dependency>
             <groupId>com.zsc</groupId>
             <artifactId>zsc-module</artifactId>

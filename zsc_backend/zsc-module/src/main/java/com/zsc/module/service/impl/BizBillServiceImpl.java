@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
  * 票据表 服务实现类
  */
 @Service
-@Transactional
 public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> implements BizBillService {
 
     @Autowired
@@ -67,6 +66,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     // ==================== 新增 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addBill(BizBillDto dto) {
         checkNotAdmin();
         BizBill bill = new BizBill();
@@ -196,6 +196,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     // ==================== 编辑 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateBill(BizBillDto dto) {
         checkNotAdmin();
         BizBill bill = this.getById(dto.getId());
@@ -240,6 +241,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     // ==================== 提交审核 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void submitBill(Long id) {
         checkNotAdmin();
         BizBill bill = this.getById(id);
@@ -274,6 +276,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     // ==================== 删除 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteBill(Long id) {
         checkNotAdmin();
         BizBill bill = this.getById(id);
@@ -300,6 +303,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     // ==================== 审核 ====================
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void reviewBill(BizBillReviewDto dto) {
         // 校验 action 值合法性
         if (!List.of("1", "2").contains(dto.getAction())) {
@@ -409,7 +413,7 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
      */
     private String generateBillNo(Long billId) {
         String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        return String.format("BILL-%s-%04d", dateStr, billId);
+        return String.format("BILL-%s-%d", dateStr, billId);
     }
 
     @Override

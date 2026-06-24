@@ -29,7 +29,6 @@ import java.util.Date;
  * @since 2026-04-15
  */
 @Service
-@Transactional
 public class BizCategoryServiceImpl extends ServiceImpl<BizCategoryMapper, BizCategory> implements BizCategoryService {
 
     @Autowired
@@ -41,6 +40,7 @@ public class BizCategoryServiceImpl extends ServiceImpl<BizCategoryMapper, BizCa
      * 添加业务类别
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addCategory(BizCategoryDto addDto) {
         BizCategory category = new BizCategory();
         
@@ -61,6 +61,7 @@ public class BizCategoryServiceImpl extends ServiceImpl<BizCategoryMapper, BizCa
      * 更新业务类别
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateCategory(BizCategoryDto updateDto) {
         BizCategory existing = this.getById(updateDto.getCategoryId());
         if (existing == null) {
@@ -95,6 +96,7 @@ public class BizCategoryServiceImpl extends ServiceImpl<BizCategoryMapper, BizCa
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteCategory(Long id) {
         BizCategory category = this.getById(id);
         if (category == null) {

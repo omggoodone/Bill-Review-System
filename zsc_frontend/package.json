@@ -1,19 +1,18 @@
 {
   "name": "zsc",
   "version": "3.9.1",
-  "description": "ZSC 管理系统",
+  "description": "票据审核系统",
   "author": "ZSC",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build:prod": "vite build",
-    "build:stage": "vite build --mode staging",
     "preview": "vite preview"
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/y_project/RuoYi-Vue.git"
+    "url": ""
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.2",

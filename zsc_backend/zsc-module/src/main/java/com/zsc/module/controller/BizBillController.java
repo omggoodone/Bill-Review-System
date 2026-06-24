@@ -22,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -50,7 +51,6 @@ public class BizBillController {
     @PostMapping("/query")
     public ResultVo<PageResult<BizBillVo>> query(@RequestBody BizBillQueryDto queryDto) {
         PageResult pageResult = bizBillService.queryBills(queryDto);
-        log.info(pageResult.getList().toString());
         return ResultVo.ok(pageResult);
     }
 
@@ -155,13 +155,20 @@ public class BizBillController {
     @Log(title = "票据管理", businessType = BusinessType.UPDATE)
     @PostMapping("/batch-review")
     public ResultVo batchReview(@RequestBody Map<String, Object> body) {
-        List<Long> ids = ((List<Integer>) body.get("ids")).stream().map(Long::valueOf).toList();
+        List<?> rawIds = (List<?>) body.get("ids");
+        if (rawIds == null || rawIds.isEmpty()) {
+            return ResultVo.fail("请选择要审核的票据");
+        }
+        List<Long> ids = rawIds.stream()
+            .map(o -> o instanceof Number n ? n.longValue() : Long.valueOf(o.toString()))
+            .toList();
         String action = (String) body.get("action");
         if (!"1".equals(action) && !"2".equals(action)) {
             return ResultVo.fail("无效的审核结果");
         }
         String comment = (String) body.getOrDefault("comment", "");
         int count = 0;
+        List<Long> failedIds = new ArrayList<>();
         for (Long id : ids) {
             BizBillReviewDto dto = new BizBillReviewDto();
             dto.setBillId(id);
@@ -170,8 +177,14 @@ public class BizBillController {
             try {
                 bizBillService.reviewBill(dto);
                 count++;
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("批量审核失败: billId={}, reason={}", id, e.getMessage());
+                failedIds.add(id);
+            }
         }
-        return ResultVo.ok("批量审核完成: " + count + "/" + ids.size());
+        if (failedIds.isEmpty()) {
+            return ResultVo.ok("全部审核成功: " + count + "/" + ids.size());
+        }
+        return ResultVo.ok("审核完成: " + count + "/" + ids.size() + "，失败票据ID: " + failedIds);
     }
 }

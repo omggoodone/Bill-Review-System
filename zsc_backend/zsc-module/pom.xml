@@ -11,10 +11,10 @@
 
     <artifactId>zsc-module</artifactId>
     
-    <name>zsc-book</name>
-    
+    <name>zsc-module</name>
+
     <description>
-        book 图书管理模块
+        票据审核核心业务模块
     </description>
 
     <dependencies>

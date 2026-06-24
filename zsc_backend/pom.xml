@@ -9,7 +9,7 @@
     <version>3.9.1</version>
 
     <name>zsc</name>
-    <description>XX管理系统</description>
+    <description>票据审核系统</description>
     
     <properties>
         <zsc.version>3.9.1</zsc.version>

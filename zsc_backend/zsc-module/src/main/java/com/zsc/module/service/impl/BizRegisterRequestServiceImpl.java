@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsc.common.core.domain.entity.SysUser;
 import com.zsc.common.utils.SecurityUtils;
 import com.zsc.module.common.exception.ServiceException;
+import com.zsc.module.common.tools.UserAccountUtils;
 import com.zsc.module.domain.dto.BizRegisterRequestDto;
 import com.zsc.module.domain.entity.BizRegisterRequest;
 import com.zsc.module.domain.vo.BizRegisterRequestVo;
@@ -19,13 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterRequestMapper, BizRegisterRequest>
         implements BizRegisterRequestService {
 
@@ -36,12 +35,14 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
     private SysUserRoleMapper userRoleMapper;
 
     @Autowired
+    private com.zsc.system.mapper.SysRoleMapper roleMapper;
+
+    @Autowired
     private EmailService emailService;
 
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void submit(BizRegisterRequestDto dto) {
         checkEmailUnique(dto.getEmail());
 
@@ -70,14 +71,15 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public BizRegisterRequestVo approve(Long id, String comment) {
         BizRegisterRequest req = this.getById(id);
         if (req == null || !"0".equals(req.getStatus())) {
             throw new ServiceException("申请不存在或已处理");
         }
 
-        String rawPassword = generatePassword();
-        String username = generateUsername(req.getEmail());
+        String rawPassword = UserAccountUtils.generatePassword();
+        String username = UserAccountUtils.generateUsername(req.getEmail(), "user", userMapper);
 
         SysUser user = new SysUser();
         user.setUserName(username);
@@ -88,7 +90,7 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
         user.setPwdUpdateDate(new Date());
         userMapper.insertUser(user);
 
-        Long roleId = "reviewer".equals(req.getRoleKey()) ? 4L : 3L;
+        Long roleId = getRoleIdByKey(req.getRoleKey());
         userRoleMapper.deleteUserRoleByUserId(user.getUserId());
         com.zsc.system.domain.SysUserRole ur = new com.zsc.system.domain.SysUserRole();
         ur.setUserId(user.getUserId());
@@ -113,6 +115,7 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void reject(Long id, String comment) {
         BizRegisterRequest req = this.getById(id);
         if (req == null || !"0".equals(req.getStatus())) {
@@ -139,26 +142,11 @@ public class BizRegisterRequestServiceImpl extends ServiceImpl<BizRegisterReques
         }
     }
 
-    private String generateUsername(String email) {
-        String prefix = email.substring(0, email.indexOf('@'))
-            .replaceAll("[^a-zA-Z0-9]", "");
-        if (prefix.isEmpty()) prefix = "user";
-
-        String candidate = prefix;
-        int tries = 0;
-        while (tries < 20) {
-            if (userMapper.selectUserByUserName(candidate) == null) return candidate;
-            candidate = prefix + "_" + (1000 + RANDOM.nextInt(9000));
-            tries++;
+    private Long getRoleIdByKey(String roleKey) {
+        com.zsc.common.core.domain.entity.SysRole role = roleMapper.checkRoleKeyUnique(roleKey);
+        if (role == null) {
+            throw new ServiceException("系统错误：角色[" + roleKey + "]不存在");
         }
-        throw new ServiceException("无法生成唯一用户名");
-    }
-
-    private String generatePassword() {
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) {
-            sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
-        }
-        return sb.toString();
+        return role.getRoleId();
     }
 }

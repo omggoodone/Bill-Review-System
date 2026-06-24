@@ -67,7 +67,6 @@ service.interceptors.request.use(config => {
   }
   return config
 }, error => {
-    console.log(error)
     Promise.reject(error)
 })
 
@@ -102,14 +101,12 @@ service.interceptors.response.use(res => {
       return Promise.reject(new Error(msg))
     } else if (code !== 200) {
       ElMessage({ message: msg, type: 'error' })
-      console.log(res)
       return Promise.reject(new Error(msg))
     } else {
       return  Promise.resolve(res.data)
     }
   },
   error => {
-    console.log('err' + error)
     let { message } = error
     if (message == "Network Error") {
       message = "后端接口连接异常"

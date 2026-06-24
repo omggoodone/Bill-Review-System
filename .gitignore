@@ -24,7 +24,8 @@ Thumbs.db
 # Claude Code
 .claude/
 
-# Obsidian (workspace only)
+# Obsidian vault
+票据审核系统/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 
