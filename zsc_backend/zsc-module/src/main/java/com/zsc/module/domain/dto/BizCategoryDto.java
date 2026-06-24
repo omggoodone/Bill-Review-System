@@ -2,6 +2,7 @@ package com.zsc.module.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class BizCategoryDto {
      * 类别名称
      */
     @NotBlank(message = "类别名称不能为空")
+    @Size(max = 100, message = "类别名称不能超过100个字符")
     private String categoryName;
 
     /**
