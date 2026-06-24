@@ -127,6 +127,14 @@ public class TokenService
      */
     public String createToken(LoginUser loginUser)
     {
+        // 踢掉旧登录，确保一个账号只能一处在线
+        String oldToken = redisCache.getCacheObject(getUserIdKey(loginUser.getUserId()));
+        if (StringUtils.isNotEmpty(oldToken))
+        {
+            redisCache.deleteObject(getTokenKey(oldToken));
+            redisCache.deleteObject(getUserIdKey(loginUser.getUserId()));
+        }
+
         String token = IdUtils.fastUUID();
         loginUser.setToken(token);
         setUserAgent(loginUser);

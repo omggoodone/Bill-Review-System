@@ -139,6 +139,49 @@
       }
     }
   }
+
+  /* 表格操作列 — 缩小按钮 */
+  .el-table .el-button--small {
+    padding: 5px 6px;
+    font-size: 12px;
+    margin-left: 0;
+  }
+
+  /* 工具栏 — 按钮换行 */
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .el-button {
+      margin-right: 0 !important;
+    }
+
+    .search-form {
+      flex-basis: 100%;
+    }
+  }
+
+  /* 搜索栏 — 表单项堆叠 */
+  .el-form--inline {
+    .el-form-item {
+      margin-right: 8px;
+
+      .el-input, .el-select, .el-date-editor {
+        width: 100%;
+      }
+    }
+  }
+
+  /* 卡片间距缩小 */
+  .app-container {
+    padding: 10px;
+  }
+
+  /* 弹窗全屏 */
+  .el-dialog {
+    width: 95% !important;
+  }
 }
 
 /* tree border */
