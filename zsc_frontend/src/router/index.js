@@ -82,6 +82,20 @@ export const constantRoutes = [
 // 动态路由，基于用户权限动态去加载
 export const dynamicRoutes = [
   {
+    path: '/monitor/log',
+    component: Layout,
+    hidden: true,
+    permissions: ['monitor:log:list'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/monitor/log/index'),
+        name: 'SysLog',
+        meta: { title: '系统日志', icon: 'log' }
+      }
+    ]
+  },
+  {
     path: '/admin/super',
     component: Layout,
     hidden: true,

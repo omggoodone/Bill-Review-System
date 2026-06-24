@@ -70,7 +70,7 @@
           <span>{{ parseTime(scope.row.updateTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width" fixed="right">
         <template #default="scope">
           <template v-if="scope.row.categoryName === '其他'">
             <span class="default-tip">默认类别</span>

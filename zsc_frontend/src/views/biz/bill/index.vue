@@ -60,7 +60,7 @@
           <span>{{ parseTime(scope.row.auditTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="160" class-name="small-padding fixed-width" fixed="right">
         <template #default="scope">
           <el-tooltip content="详情" placement="top"><el-button link type="primary" icon="Document" @click="handleDetail(scope.row)" /></el-tooltip>
           <el-tooltip content="修改" placement="top"><el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-show="canEdit(scope.row)" v-hasPermi="['biz:bill:add']" /></el-tooltip>

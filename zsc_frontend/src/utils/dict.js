@@ -14,7 +14,18 @@ export function useDict(...args) {
         res.value[dictType] = dicts
       } else {
         getDicts(dictType).then(resp => {
-          res.value[dictType] = resp.data.map(p => ({ label: p.dictLabel, value: p.dictValue, elTagType: p.listClass, elTagClass: p.cssClass }))
+          res.value[dictType] = resp.data.map(p => {
+            // 如果 DB 没配颜色，按字典类型 + 值自动匹配
+            const statusColors = { '0': 'info', '1': 'warning', '2': 'success', '3': 'danger' }
+            const enableColors  = { '0': 'success', '1': 'warning' }
+            const autoColor = dictType === 'biz_bill_status' ? statusColors : enableColors
+            return {
+              label: p.dictLabel,
+              value: p.dictValue,
+              elTagType: p.listClass || autoColor[p.dictValue] || '',
+              elTagClass: p.cssClass || ''
+            }
+          })
           useDictStore().setDict(dictType, res.value[dictType])
         })
       }

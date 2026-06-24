@@ -64,7 +64,7 @@
       <el-table-column label="创建时间" align="center" prop="createTime" width="160">
         <template #default="scope"><span>{{ parseTime(scope.row.createTime) }}</span></template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="160">
+      <el-table-column label="操作" align="center" width="160" fixed="right">
         <template #default="scope">
           <el-tooltip content="重置密码" placement="top"><el-button link type="primary" icon="Lock" @click="handleResetPwd(scope.row)" v-hasPermi="['system:user:resetPwd']" /></el-tooltip>
           <el-tooltip :content="scope.row.status === '0' ? '停用' : '启用'" placement="top"><el-button link :type="scope.row.status === '0' ? 'warning' : 'success'" :icon="scope.row.status === '0' ? 'VideoPause' : 'VideoPlay'" @click="handleStatus(scope.row)" v-hasPermi="['system:user:edit']" /></el-tooltip>

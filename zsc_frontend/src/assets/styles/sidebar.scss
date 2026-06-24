@@ -218,7 +218,7 @@
       .sidebar-container {
         pointer-events: none;
         transition-duration: 0.3s;
-        transform: translate3d(-(vars.$base-sidebar-width), 0, 0);
+        transform: translateX(-#{vars.$base-sidebar-width});
       }
     }
   }
