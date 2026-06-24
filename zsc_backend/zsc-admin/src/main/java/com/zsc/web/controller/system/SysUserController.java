@@ -32,6 +32,7 @@ import com.zsc.common.utils.poi.ExcelUtil;
 import com.zsc.system.service.ISysDeptService;
 import com.zsc.system.service.ISysPostService;
 import com.zsc.system.service.ISysRoleService;
+import com.zsc.module.service.BizBillService;
 import com.zsc.module.service.EmailService;
 import com.zsc.system.service.ISysUserService;
 import com.zsc.framework.web.service.TokenService;
@@ -62,6 +63,9 @@ public class SysUserController extends BaseController
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private BizBillService billService;
 
     /**
      * 获取用户列表
@@ -193,11 +197,14 @@ public class SysUserController extends BaseController
         {
             return error("当前用户不能删除");
         }
-        // 删除前记录邮箱并发送通知
+        // 删除前清理非通过票据 + 发送邮件通知
         for (Long userId : userIds) {
             SysUser u = userService.selectUserById(userId);
-            if (u != null && StringUtils.isNotEmpty(u.getEmail())) {
-                emailService.sendAccountDisabled(u.getEmail(), u.getUserName(), "您的账号已被管理员删除。");
+            if (u != null) {
+                billService.deleteNonApprovedBillsByUser(u.getUserName());
+                if (StringUtils.isNotEmpty(u.getEmail())) {
+                    emailService.sendAccountDisabled(u.getEmail(), u.getUserName(), "您的账号已被管理员删除。");
+                }
             }
         }
         int rows = userService.deleteUserByIds(userIds);

@@ -464,7 +464,11 @@ public class SysUserServiceImpl implements ISysUserService
         userRoleMapper.deleteUserRoleByUserId(userId);
         // 删除用户与岗位表
         userPostMapper.deleteUserPostByUserId(userId);
-        return userMapper.deleteUserById(userId);
+        // 软删除：设置 del_flag = '2'（保留数据作为审计凭证）
+        SysUser user = new SysUser();
+        user.setUserId(userId);
+        user.setDelFlag("2");
+        return userMapper.updateUser(user);
     }
 
     /**

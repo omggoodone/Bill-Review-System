@@ -63,4 +63,9 @@ public interface BizBillService extends IService<BizBill> {
      */
     ReviewerStatsVo getReviewerStats();
 
+    /**
+     * 删除用户时清理其非通过状态的票据（草稿/待审/退回 + 附件 + 审核记录）
+     */
+    void deleteNonApprovedBillsByUser(String username);
+
 }

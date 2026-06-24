@@ -54,6 +54,9 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
     @Autowired
     private BizCategoryMapper categoryMapper;
 
+    @Autowired
+    private com.zsc.system.mapper.SysUserMapper sysUserMapper;
+
     /**
      * 管理员禁止执行用户专属操作
      */
@@ -100,6 +103,12 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         // 普通用户只查自己的票据
         if (!SecurityUtils.hasPermi("biz:bill:review")) {
             wrapper.eq(BizBill::getCreateBy, SecurityUtils.getUsername());
+        } else {
+            // 防御性过滤：审核员只能看到活跃用户（未停用/未删除）的票据
+            List<String> activeUsers = sysUserMapper.selectActiveUserNames();
+            if (!activeUsers.isEmpty()) {
+                wrapper.in(BizBill::getCreateBy, activeUsers);
+            }
         }
 
         // 条件过滤
@@ -495,9 +504,14 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         String username = SecurityUtils.getUsername();
         ReviewerStatsVo vo = new ReviewerStatsVo();
 
-        // 待审核数量
-        vo.setPendingCount((int) this.count(
-            new LambdaQueryWrapper<BizBill>().eq(BizBill::getStatus, "1")));
+        // 待审核数量（仅统计活跃用户的票据）
+        LambdaQueryWrapper<BizBill> pendingWrapper = new LambdaQueryWrapper<BizBill>()
+            .eq(BizBill::getStatus, "1");
+        List<String> activeUsers = sysUserMapper.selectActiveUserNames();
+        if (!activeUsers.isEmpty()) {
+            pendingWrapper.in(BizBill::getCreateBy, activeUsers);
+        }
+        vo.setPendingCount((int) this.count(pendingWrapper));
 
         // 今日通过/退回
         String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
@@ -519,13 +533,16 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         vo.setApprovalRate(totalReviewed > 0
             ? Math.round(todayApproved * 100.0 / totalReviewed) : 0);
 
-        // 积压预警: 超过3天未审核
+        // 积压预警: 超过3天未审核（仅统计活跃用户的票据）
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, -3);
-        vo.setStalePending((int) this.count(
-            new LambdaQueryWrapper<BizBill>()
-                .eq(BizBill::getStatus, "1")
-                .lt(BizBill::getCreateTime, cal.getTime())));
+        LambdaQueryWrapper<BizBill> staleWrapper = new LambdaQueryWrapper<BizBill>()
+            .eq(BizBill::getStatus, "1")
+            .lt(BizBill::getCreateTime, cal.getTime());
+        if (!activeUsers.isEmpty()) {
+            staleWrapper.in(BizBill::getCreateBy, activeUsers);
+        }
+        vo.setStalePending((int) this.count(staleWrapper));
 
         // 最近审核记录
         List<BizBill> recentBills = this.list(
@@ -545,6 +562,28 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
         }).collect(Collectors.toList()));
 
         return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteNonApprovedBillsByUser(String username) {
+        // 查该用户所有非通过状态的票据
+        List<BizBill> bills = this.lambdaQuery()
+            .eq(BizBill::getCreateBy, username)
+            .ne(BizBill::getStatus, "2")
+            .list();
+        if (bills.isEmpty()) return;
+
+        List<Long> billIds = bills.stream().map(BizBill::getId).toList();
+
+        // 删附件
+        fileMapper.delete(
+            new LambdaQueryWrapper<BizBillFile>().in(BizBillFile::getBillId, billIds));
+        // 删审核记录
+        auditLogMapper.delete(
+            new LambdaQueryWrapper<BizAuditLog>().in(BizAuditLog::getBillId, billIds));
+        // 删票据
+        this.removeByIds(billIds);
     }
 
 }

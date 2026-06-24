@@ -125,6 +125,13 @@ public interface SysUserMapper
     public int deleteUserByIds(Long[] userIds);
 
     /**
+     * 查询所有启用且未删除的活跃用户名
+     *
+     * @return 活跃用户名列表
+     */
+    public List<String> selectActiveUserNames();
+
+    /**
      * 校验用户名称是否唯一
      * 
      * @param userName 用户名称
