@@ -17,17 +17,13 @@
         </el-select>
       </el-col>
       <el-col :xs="12" :sm="6" :md="3">
-        <el-button type="primary" icon="Refresh" @click="loadLog" :loading="loading">
-          刷新
-        </el-button>
-        <el-checkbox v-model="autoRefresh" style="margin-left:8px" @change="toggleAuto">
-          自动
-        </el-checkbox>
+        <el-button type="primary" icon="Refresh" @click="loadLog" :loading="loading">刷新</el-button>
+        <el-checkbox v-model="autoRefresh" style="margin-left:8px" @change="toggleAuto">自动</el-checkbox>
       </el-col>
     </el-row>
 
     <el-card shadow="never" style="margin-top:10px">
-      <pre class="log-viewer" ref="logViewer">{{ content || '暂无日志' }}</pre>
+      <pre class="log-viewer" ref="logViewer" v-html="content || '暂无日志'"></pre>
     </el-card>
   </div>
 </template>
@@ -43,6 +39,30 @@ const content = ref('')
 const logViewer = ref(null)
 let timer = null
 
+// 日志级别颜色映射
+const LEVEL_COLORS = {
+  ERROR: '#f56c6c',
+  WARN:  '#e6a23c',
+  INFO:  '#67c23a',
+  DEBUG: '#909399',
+  TRACE: '#909399'
+}
+
+function highlightLine(line) {
+  // 匹配日志级别关键字（一般在 [] 之后或行首）
+  const m = line.match(/\b(ERROR|WARN |WARNING|INFO |DEBUG|TRACE)\b/)
+  if (m) {
+    const level = m[1].trim()
+    const color = LEVEL_COLORS[level] || '#d4d4d4'
+    return line.replace(m[0], `<span style="color:${color};font-weight:bold">${m[0]}</span>`)
+  }
+  // Nginx 状态码高亮
+  line = line.replace(/\b" (\d{3}) /g, '" <span style="color:#409EFF;font-weight:bold">$1</span> ')
+  // Nginx 4xx/5xx 红色
+  line = line.replace(/<span style="color:#409EFF;font-weight:bold">([45]\d{2})<\/span>/g, '<span style="color:#f56c6c;font-weight:bold">$1</span>')
+  return line
+}
+
 function loadLog() {
   loading.value = true
   request({
@@ -50,16 +70,13 @@ function loadLog() {
     method: 'get',
     params: { file: currentFile.value, lines: maxLines.value }
   }).then(res => {
-    content.value = res.data.content
-    // 滚到底部
+    content.value = res.data.content.split('\n').map(highlightLine).join('\n')
     nextTick(() => {
       if (logViewer.value) {
         logViewer.value.scrollTop = logViewer.value.scrollHeight
       }
     })
-  }).finally(() => {
-    loading.value = false
-  })
+  }).finally(() => { loading.value = false })
 }
 
 function toggleAuto(val) {
@@ -76,16 +93,14 @@ onUnmounted(() => clearInterval(timer))
 </script>
 
 <style scoped lang="scss">
-.toolbar {
-  margin-bottom: 10px;
-}
+.toolbar { margin-bottom: 10px; }
 
 .log-viewer {
   background: #1e1e1e;
   color: #d4d4d4;
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   padding: 16px;
   margin: 0;
   min-height: 60vh;

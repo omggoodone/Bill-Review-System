@@ -34,7 +34,7 @@ server:
 # 日志配置
 logging:
   level:
-    com.zsc: debug
+    com.zsc: info
     org.springframework: warn
 
 # 用户配置
