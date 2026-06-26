@@ -3,7 +3,7 @@
 
     <el-row :gutter="20" class="dashboard-stats">
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goUserDetail('all')">
           <div class="stat-content">
             <div class="stat-icon total-icon"><el-icon :size="28"><User /></el-icon></div>
             <div class="stat-info">
@@ -14,7 +14,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goUserDetail('user')">
           <div class="stat-content">
             <div class="stat-icon user-icon"><el-icon :size="28"><UserFilled /></el-icon></div>
             <div class="stat-info">
@@ -25,7 +25,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goUserDetail('reviewer')">
           <div class="stat-content">
             <div class="stat-icon reviewer-icon"><el-icon :size="28"><Checked /></el-icon></div>
             <div class="stat-info">
@@ -36,7 +36,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goUserDetail('admin')">
           <div class="stat-content">
             <div class="stat-icon admin-icon"><el-icon :size="28"><Setting /></el-icon></div>
             <div class="stat-info">
@@ -47,7 +47,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goBillDetail('all')">
           <div class="stat-content">
             <div class="stat-icon bill-icon"><el-icon :size="28"><Document /></el-icon></div>
             <div class="stat-info">
@@ -58,7 +58,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goBillDetail('pending')">
           <div class="stat-content">
             <div class="stat-icon pending-icon"><el-icon :size="28"><Clock /></el-icon></div>
             <div class="stat-info">
@@ -69,7 +69,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goBillDetail('approved')">
           <div class="stat-content">
             <div class="stat-icon approved-icon"><el-icon :size="28"><CircleCheck /></el-icon></div>
             <div class="stat-info">
@@ -80,7 +80,7 @@
         </el-card>
       </el-col>
       <el-col :xs="12" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
+        <el-card class="stat-card clickable-card" shadow="hover" @click="goBillDetail('rejected')">
           <div class="stat-content">
             <div class="stat-icon rejected-icon"><el-icon :size="28"><CircleClose /></el-icon></div>
             <div class="stat-info">
@@ -286,6 +286,8 @@ function loadData() {
 }
 
 function goUserManage() { router.push('/admin/users') }
+function goBillDetail(type) { router.push('/admin/super/bill-detail?type=' + type) }
+function goUserDetail(type) { router.push('/admin/super/user-detail?type=' + type) }
 
 onMounted(() => loadData())
 </script>
@@ -299,6 +301,7 @@ onMounted(() => loadData())
   .stat-card {
     transition: all 0.3s;
     &:hover { transform: translateY(-3px); }
+    &.clickable-card { cursor: pointer; }
     .stat-content {
       display: flex; align-items: center; justify-content: space-around; padding: 6px 0;
       .stat-icon {

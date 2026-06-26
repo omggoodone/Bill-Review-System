@@ -126,8 +126,17 @@ public class BizBillServiceImpl extends ServiceImpl<BizBillMapper, BizBill> impl
                .ge(dto.getMinAmount() != null, BizBill::getAmount, dto.getMinAmount())
                .le(dto.getMaxAmount() != null, BizBill::getAmount, dto.getMaxAmount())
                .ge(StringUtils.isNotBlank(dto.getStartTime()), BizBill::getCreateTime, dto.getStartTime())
-               .le(StringUtils.isNotBlank(dto.getEndTime()), BizBill::getCreateTime, dto.getEndTime())
-               .last(buildOrderSql(dto.getSortField(), dto.getSortOrder()));
+               .le(StringUtils.isNotBlank(dto.getEndTime()), BizBill::getCreateTime, dto.getEndTime());
+
+        // 审核日期过滤：按审核时间当天范围筛选
+        if (StringUtils.isNotBlank(dto.getAuditDate())) {
+            String auditDateStart = dto.getAuditDate() + " 00:00:00";
+            String auditDateEnd = dto.getAuditDate() + " 23:59:59";
+            wrapper.ge(BizBill::getAuditTime, auditDateStart)
+                   .le(BizBill::getAuditTime, auditDateEnd);
+        }
+
+        wrapper.last(buildOrderSql(dto.getSortField(), dto.getSortOrder()));
 
         Page<BizBill> page = this.page(dto.convertToPage(), wrapper);
 

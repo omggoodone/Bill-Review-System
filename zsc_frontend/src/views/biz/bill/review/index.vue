@@ -124,13 +124,15 @@
 import { listBill, getBill, reviewBill, batchReview } from "@/api/biz/bill"
 import { listBizCategory } from "@/api/biz/bizCategory"
 import BillForm from "@/views/biz/bill/components/BillForm.vue"
+import { useRoute } from "vue-router"
 
+const route = useRoute()
 const { proxy } = getCurrentInstance()
 const { biz_bill_status } = proxy.useDict('biz_bill_status')
 
 const billList = ref([])
 const allList = ref([])
-const staleOnly = ref(false)
+const staleOnly = ref(route.query.staleOnly === '1')
 const sortField = ref(undefined)
 const sortOrder = ref(undefined)
 const ids = ref([])
