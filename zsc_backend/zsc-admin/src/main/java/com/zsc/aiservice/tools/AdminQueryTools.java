@@ -687,6 +687,34 @@ public class AdminQueryTools {
         return sb.toString();
     }
 
+    // ==================== Tool 11: 类别列表 ====================
+
+    @Tool("获取系统中所有票据类别列表。管理员问'类别管理'、'列出所有类别'、'有哪些类别'时调用此工具。" +
+            "返回已格式化的 Markdown 表格文本。")
+    public String listCategories() {
+        List<BizCategory> categories = categoryService.list(
+                new LambdaQueryWrapper<BizCategory>().orderByAsc(BizCategory::getSortOrder));
+
+        if (categories == null || categories.isEmpty()) {
+            return "系统中暂无类别。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("共 **").append(categories.size()).append("** 个类别：\n\n");
+        sb.append("| 类别名称 | 排序 | 状态 | 创建时间 |\n");
+        sb.append("|----------|------|------|----------|\n");
+        for (BizCategory c : categories) {
+            String status = "0".equals(c.getStatus()) ? "启用" : "停用";
+            sb.append("| ").append(c.getCategoryName())
+                    .append(" | ").append(c.getSortOrder() != null ? c.getSortOrder() : 0)
+                    .append(" | ").append(status)
+                    .append(" | ").append(fmt(c.getCreateTime()))
+                    .append(" |\n");
+        }
+
+        return sb.toString();
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
