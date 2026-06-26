@@ -335,6 +335,62 @@ public class AdminQueryTools {
         return digest;
     }
 
+    // ==================== Tool 7: 周报 ====================
+
+    @Tool("获取本周运行周报：本周 vs 上周提交量环比变化、通过率对比、" +
+            "各类别金额分布、审核员工作量排行（含上周对比）")
+    public Map<String, Object> getWeeklyReport() {
+        LocalDate today = LocalDate.now();
+        LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate lastMonday = thisMonday.minusWeeks(1);
+        LocalDate lastSunday = thisMonday.minusDays(1);
+
+        Date thisWeekStart = toDate(thisMonday);
+
+        // 本周数据
+        long thisWeekSubmitted = countSubmittedBetween(thisWeekStart, toDate(today.plusDays(1)));
+        long thisWeekApproved = countAuditedBetween("2", thisWeekStart, toDate(today.plusDays(1)));
+        long thisWeekRejected = countAuditedBetween("3", thisWeekStart, toDate(today.plusDays(1)));
+        long thisWeekAudited = thisWeekApproved + thisWeekRejected;
+
+        // 上周数据
+        Date lastWeekStart = toDate(lastMonday);
+        Date lastWeekEnd = toDate(lastSunday.plusDays(1));
+        long lastWeekSubmitted = countSubmittedBetween(lastWeekStart, lastWeekEnd);
+        long lastWeekApproved = countAuditedBetween("2", lastWeekStart, lastWeekEnd);
+        long lastWeekRejected = countAuditedBetween("3", lastWeekStart, lastWeekEnd);
+        long lastWeekAudited = lastWeekApproved + lastWeekRejected;
+
+        String submittedChange = calcChange(thisWeekSubmitted, lastWeekSubmitted);
+        String approvedChange = calcChange(thisWeekApproved, lastWeekApproved);
+        String rejectedChange = calcChange(thisWeekRejected, lastWeekRejected);
+
+        // 本周类别金额分布
+        List<Map<String, Object>> categoryDist = getCategorySummary();
+
+        // 审核员工作量
+        String workload = getReviewerWorkload();
+
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("报告期间", thisMonday.format(DATE_FMT) + " ~ " + today.format(DATE_FMT));
+        report.put("本周提交数", thisWeekSubmitted);
+        report.put("上周提交数", lastWeekSubmitted);
+        report.put("提交数环比变化", submittedChange);
+        report.put("本周通过数", thisWeekApproved);
+        report.put("上周通过数", lastWeekApproved);
+        report.put("通过数环比变化", approvedChange);
+        report.put("本周退回数", thisWeekRejected);
+        report.put("上周退回数", lastWeekRejected);
+        report.put("退回数环比变化", rejectedChange);
+        report.put("本周通过率", thisWeekAudited > 0 ?
+                String.format("%.1f%%", 100.0 * thisWeekApproved / thisWeekAudited) : "N/A");
+        report.put("上周通过率", lastWeekAudited > 0 ?
+                String.format("%.1f%%", 100.0 * lastWeekApproved / lastWeekAudited) : "N/A");
+        report.put("各类别金额分布", categoryDist);
+        report.put("审核员工作量排行", workload);
+        return report;
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
