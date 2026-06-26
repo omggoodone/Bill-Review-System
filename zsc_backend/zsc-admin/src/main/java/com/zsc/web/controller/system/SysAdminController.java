@@ -1,8 +1,10 @@
 package com.zsc.web.controller.system;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zsc.common.annotation.Log;
 import com.zsc.common.core.controller.BaseController;
 import com.zsc.common.core.domain.AjaxResult;
+import com.zsc.common.enums.BusinessType;
 import com.zsc.common.core.domain.entity.SysUser;
 import com.zsc.module.domain.entity.BizBill;
 import com.zsc.module.domain.vo.ReviewerWorkloadVo;
@@ -100,6 +102,7 @@ public class SysAdminController extends BaseController {
     }
 
     @PreAuthorize("@ss.hasPermi('biz:admin:list')")
+    @Log(title = "注册申请", businessType = BusinessType.UPDATE)
     @PostMapping("/register-requests/{id}/approve")
     public AjaxResult approveRequest(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
         String comment = body != null ? body.getOrDefault("comment", "") : "";
@@ -107,6 +110,7 @@ public class SysAdminController extends BaseController {
     }
 
     @PreAuthorize("@ss.hasPermi('biz:admin:list')")
+    @Log(title = "注册申请", businessType = BusinessType.UPDATE)
     @PostMapping("/register-requests/{id}/reject")
     public AjaxResult rejectRequest(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
         String comment = body != null ? body.getOrDefault("comment", "") : "";

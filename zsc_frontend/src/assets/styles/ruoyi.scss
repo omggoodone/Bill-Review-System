@@ -240,15 +240,6 @@
   text-align: center;
 }
 
-/* 统一表格行高 */
-.el-table .el-table__body-wrapper tr {
-  height: 54px;
-}
-.el-table .el-table__body-wrapper td {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
 /* 斑马纹 */
 .el-table .el-table__row:nth-child(even) {
   background-color: #f5f7fa;

@@ -37,8 +37,7 @@ Bill-Review-System/
 │       ├── api/biz/                       # API 封装 (admin.js/bill.js)
 │       ├── router/                        # 路由配置 (含 dynamicRoutes)
 │       └── store/                         # 状态管理
-├── docs/                                  # 设计文档
-└── obsidian/                              # Obsidian 知识库
+└── docs/                                  # 设计文档
 ```
 
 ## 系统角色
@@ -87,8 +86,9 @@ Bill-Review-System/
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS \`zsc-train\` DEFAULT CHARSET utf8mb4"
 mysql -u root -p zsc-train < zsc_backend/sql/init-system.sql
 
-# 2. 修改数据库密码 + 邮件配置
-# 编辑 zsc_backend/zsc-admin/src/main/resources/application-druid.yml
+# 2. 配置数据库
+# 复制 zsc_backend/zsc-admin/src/main/resources/application-druid.example.yml
+# 重命名为 application-druid.yml，填入你的数据库密码和邮件配置
 
 # 3. 启动
 cd zsc_backend

@@ -76,11 +76,17 @@ public class BaseController
         rspData.setCode(HttpStatus.SUCCESS);
         rspData.setMsg("查询成功");
         rspData.setRows(list);
-        rspData.setTotal(list.size());
-//        if (list instanceof Page)
-//        {
-//            rspData.setTotal(((Page) list).getTotal());
-//        }
+        if (list instanceof com.baomidou.mybatisplus.extension.plugins.pagination.Page<?> page) {
+            rspData.setTotal(page.getTotal());
+        } else {
+            rspData.setTotal(list.size());
+        }
+        return rspData;
+    }
+
+    protected TableDataInfo getDataTable(List<?> list, long total) {
+        TableDataInfo rspData = getDataTable(list);
+        rspData.setTotal(total);
         return rspData;
     }
 
