@@ -43,4 +43,7 @@ public class BizBillQueryDto extends BasePageReq {
     /** 排序方向 asc/desc */
     private String sortOrder;
 
+    /** 审核日期过滤（格式 yyyy-MM-dd），仅查当天审核的票据 */
+    private String auditDate;
+
 }

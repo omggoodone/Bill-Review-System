@@ -115,7 +115,7 @@
           <div class="quick-actions">
             <el-button type="primary" icon="User" size="large" @click="goUserManage">用户管理</el-button>
             <el-button type="success" icon="Menu" size="large" @click="goCategoryManage">类别管理</el-button>
-            <el-button type="warning" icon="Checked" size="large" @click="goRegisterReview">注册审核</el-button>
+            <el-button type="warning" icon="Checked" size="large">注册审核</el-button>
           </div>
         </el-card>
       </el-col>
@@ -280,7 +280,6 @@ function handleReject(row) {
 // ==================== 导航 ====================
 function goUserManage() { router.push('/admin/users') }
 function goCategoryManage() { router.push('/admin/bizCategory') }
-function goRegisterReview() { router.push('/admin/registerReview') }
 
 onMounted(() => {
   loadData()

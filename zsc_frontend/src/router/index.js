@@ -166,6 +166,62 @@ export const dynamicRoutes = [
     ]
   },
   {
+    path: '/bill/reviewer-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['biz:bill:review'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/biz/bill/reviewerDetail/index'),
+        name: 'ReviewerDetail',
+        meta: { title: '审核员票据详情', icon: 'bill' }
+      }
+    ]
+  },
+  {
+    path: '/admin/super/bill-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['biz:admin:list'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/admin/super/billDetail/index'),
+        name: 'AdminBillDetail',
+        meta: { title: '票据详情', activeMenu: '/admin/super' }
+      }
+    ]
+  },
+  {
+    path: '/admin/super/user-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['biz:admin:list'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/admin/super/userDetail/index'),
+        name: 'AdminUserDetail',
+        meta: { title: '用户详情', activeMenu: '/admin/super' }
+      }
+    ]
+  },
+  {
+    path: '/admin/register-review',
+    component: Layout,
+    hidden: true,
+    permissions: ['biz:admin:list'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/biz/admin/registerReview/index'),
+        name: 'AdminRegisterReview',
+        meta: { title: '注册审核', activeMenu: '/admin' }
+      }
+    ]
+  },
+  {
     path: '/tool/gen-edit',
     component: Layout,
     hidden: true,

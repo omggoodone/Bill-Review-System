@@ -686,6 +686,12 @@ VALUES
 (3017, '类别管理', 3014, 3, 'bizCategory', 'biz/bizCategory/index', '', '', 1, 0, 'C', '0', '0', 'biz:category:list', 'category', 'admin', NOW(), '', NULL, '业务类别管理'),
 (3018, '注册审核', 3014, 4, 'registerReview', 'biz/admin/register/index', '', '', 1, 0, 'C', '0', '0', 'biz:admin:list', 'example', 'admin', NOW(), '', NULL, '管理员审核注册申请'),
 (3019, '管理概览', 3014, 0, 'super', 'admin/super/index', '', '', 1, 0, 'C', '0', '0', 'biz:admin:list', 'dashboard', 'admin', NOW(), '', NULL, '超管仪表盘 — 系统全景 + 审核员工作量'),
+-- 审核员侧边栏分类菜单
+(3020, '待审核', 3000, 3, 'reviewPending', 'biz/bill/review/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'edit', 'admin', NOW(), '', NULL, '待审核票据'),
+(3021, '积压预警', 3000, 4, 'reviewStale', 'biz/bill/review/index', '{"staleOnly":"1"}', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'warning', 'admin', NOW(), '', NULL, '积压超过3天未审核票据'),
+(3022, '今日通过', 3000, 5, 'todayApproved', 'biz/bill/reviewerDetail/index', '{"type":"approved"}', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'success', 'admin', NOW(), '', NULL, '今日通过票据只读查看'),
+(3023, '今日退回', 3000, 6, 'todayRejected', 'biz/bill/reviewerDetail/index', '{"type":"rejected"}', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'error', 'admin', NOW(), '', NULL, '今日退回票据只读查看'),
+(3024, '票据通过', 3000, 7, 'approvedBills', 'biz/bill/approved/index', '', '', 1, 0, 'C', '0', '0', 'biz:bill:review', 'example', 'admin', NOW(), '', NULL, '所有已通过票据只读查看'),
 -- 用户管理操作按钮（框架原有，补入种子数据）
 (1000, '用户查询', 3016, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query', '#', 'admin', NOW(), '', NULL, ''),
 (1002, '用户编辑', 3016, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit', '#', 'admin', NOW(), '', NULL, ''),
@@ -701,8 +707,9 @@ INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
 -- 普通用户(role_id=3): 票据CRUD + 类别查询
 (3, 3000), (3, 3001), (3, 3012), (3, 3003), (3, 3004), (3, 3005),
 (3, 3008),
--- 审核员(role_id=4): 票据审核 + 概览
+-- 审核员(role_id=4): 票据审核 + 概览 + 侧边栏分类
 (4, 3000), (4, 3012), (4, 3002), (4, 3006), (4, 3003), (4, 3008),
+(4, 3020), (4, 3021), (4, 3022), (4, 3023), (4, 3024),
 -- 管理员(role_id=5): 管理仪表盘 + 用户/类别/注册管理 + 用户操作按钮
 (5, 3014), (5, 3015), (5, 3016), (5, 3017), (5, 3018),
 (5, 3008), (5, 3009), (5, 3010), (5, 3011),

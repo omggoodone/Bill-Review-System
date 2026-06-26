@@ -5,7 +5,7 @@
     <template v-if="isReviewer">
       <el-row :gutter="20" class="dashboard-stats">
         <el-col :xs="12" :sm="8" :md="span5">
-          <el-card class="stat-card" shadow="hover">
+          <el-card class="stat-card clickable-card" shadow="hover" @click="goReview">
             <div class="stat-content">
               <div class="stat-icon pending-icon">
                 <el-icon :size="28"><Clock /></el-icon>
@@ -18,7 +18,7 @@
           </el-card>
         </el-col>
         <el-col :xs="12" :sm="8" :md="span5">
-          <el-card class="stat-card" shadow="hover">
+          <el-card class="stat-card clickable-card" shadow="hover" @click="goTodayApproved">
             <div class="stat-content">
               <div class="stat-icon approved-icon">
                 <el-icon :size="28"><CircleCheck /></el-icon>
@@ -31,7 +31,7 @@
           </el-card>
         </el-col>
         <el-col :xs="12" :sm="8" :md="span5">
-          <el-card class="stat-card" shadow="hover">
+          <el-card class="stat-card clickable-card" shadow="hover" @click="goTodayRejected">
             <div class="stat-content">
               <div class="stat-icon rejected-icon">
                 <el-icon :size="28"><CircleClose /></el-icon>
@@ -57,7 +57,7 @@
           </el-card>
         </el-col>
         <el-col :xs="12" :sm="8" :md="span5">
-          <el-card class="stat-card" shadow="hover">
+          <el-card class="stat-card clickable-card" shadow="hover" @click="goStaleWarning">
             <div class="stat-content">
               <div class="stat-icon stale-icon">
                 <el-icon :size="28"><WarningFilled /></el-icon>
@@ -371,6 +371,9 @@ function loadReviewerData() {
 function goCreate() { router.push('/bill/myBill') }
 function goMyBill() { router.push('/bill/myBill') }
 function goReview() { router.push('/bill/review') }
+function goTodayApproved() { router.push('/bill/reviewer-detail?type=approved') }
+function goTodayRejected() { router.push('/bill/reviewer-detail?type=rejected') }
+function goStaleWarning() { router.push('/bill/review?staleOnly=1') }
 
 onMounted(() => {
   if (isReviewer.value) {
@@ -395,6 +398,12 @@ onMounted(() => {
     .stat-card {
       transition: all 0.3s;
       &:hover { transform: translateY(-3px); }
+
+      &.clickable-card {
+        cursor: pointer;
+        &:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        &:active { transform: translateY(-1px); }
+      }
 
       .stat-content {
         display: flex;
