@@ -243,6 +243,21 @@ public class AdminQueryTools {
         return result;
     }
 
+    // ==================== Tool 5: 月度提交趋势 ====================
+
+    @Tool("获取本月票据提交的周度趋势，按自然周统计提交量")
+    public List<Map<String, Object>> getMonthlyTrend() {
+        List<com.zsc.module.domain.vo.TrendItemVo> trends = billService.getMonthlyTrend();
+        return trends.stream()
+                .map(t -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("label", t.getLabel());
+                    m.put("count", t.getCount());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
