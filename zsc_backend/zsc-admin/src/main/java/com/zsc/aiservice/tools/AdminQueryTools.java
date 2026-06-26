@@ -715,6 +715,85 @@ public class AdminQueryTools {
         return sb.toString();
     }
 
+    // ==================== Tool 12: 待审核概览 ====================
+
+    @Tool("获取当前待审核票据概览。管理员问'待审核情况'或'还有多少单没审'时调用此工具。" +
+            "返回已格式化的 Markdown 文本，直接展示给用户。")
+    public String getPendingBills() {
+        List<BizBill> pendingBills = billService.list(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getStatus, "1")
+                .orderByAsc(BizBill::getCreateTime));
+
+        if (pendingBills.isEmpty()) {
+            return "当前没有待审核票据。";
+        }
+
+        // 积压（超3天）
+        Date threeDaysAgo = toDate(LocalDate.now().minusDays(3));
+        long staleCount = pendingBills.stream()
+                .filter(b -> b.getCreateTime() != null && b.getCreateTime().before(threeDaysAgo))
+                .count();
+
+        // 批量加载类别名称
+        Set<Long> catIds = pendingBills.stream()
+                .map(BizBill::getCategoryId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> catNameMap = new HashMap<>();
+        if (!catIds.isEmpty()) {
+            categoryService.listByIds(catIds)
+                    .forEach(c -> catNameMap.put(c.getCategoryId(), c.getCategoryName()));
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        // 摘要
+        sb.append("**待审核总数**：").append(pendingBills.size()).append(" 单");
+        if (staleCount > 0) {
+            sb.append("，其中 ⚠️ **积压（超3天）**：").append(staleCount).append(" 单");
+        }
+        sb.append("\n\n");
+
+        // 类别分布
+        Map<Long, Long> catCounts = new LinkedHashMap<>();
+        for (BizBill b : pendingBills) {
+            catCounts.merge(b.getCategoryId() != null ? b.getCategoryId() : 0L, 1L, Long::sum);
+        }
+        if (!catCounts.isEmpty()) {
+            sb.append("### 各类别待审分布\n\n");
+            sb.append("| 类别 | 待审数 |\n");
+            sb.append("|------|--------|\n");
+            catCounts.entrySet().stream()
+                    .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                    .forEach(e -> {
+                        String name = catNameMap.getOrDefault(e.getKey(), "未分类");
+                        sb.append("| ").append(name).append(" | ").append(e.getValue()).append(" |\n");
+                    });
+            sb.append("\n");
+        }
+
+        // 完整表格
+        int limit = Math.min(pendingBills.size(), 50);
+        sb.append("### 待审核票据完整列表（").append(limit).append(" 条）\n\n");
+        sb.append("| 票据编号 | 标题 | 金额(元) | 类别 | 提交人 | 提交时间 | 状态 |\n");
+        sb.append("|----------|------|----------|------|--------|----------|------|\n");
+        for (int i = 0; i < limit; i++) {
+            BizBill b = pendingBills.get(i);
+            String stale = (b.getCreateTime() != null && b.getCreateTime().before(threeDaysAgo)) ? "⚠️积压" : "正常";
+            String title = b.getTitle() != null && b.getTitle().length() > 14
+                    ? b.getTitle().substring(0, 14) + "…" : b.getTitle();
+            sb.append("| ").append(b.getBillNo())
+                    .append(" | ").append(title)
+                    .append(" | ").append(b.getAmount() != null ? b.getAmount().toString() : "0.00")
+                    .append(" | ").append(catNameMap.getOrDefault(b.getCategoryId(), "未分类"))
+                    .append(" | ").append(b.getCreateBy())
+                    .append(" | ").append(fmt(b.getCreateTime()))
+                    .append(" | ").append(stale)
+                    .append(" |\n");
+        }
+
+        return sb.toString();
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
