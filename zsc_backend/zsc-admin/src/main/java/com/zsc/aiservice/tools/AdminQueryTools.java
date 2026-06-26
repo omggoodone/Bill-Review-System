@@ -70,4 +70,71 @@ public class AdminQueryTools {
                 new LambdaQueryWrapper<BizBill>().eq(BizBill::getStatus, "0")));
         return stats;
     }
+
+    // ==================== Tool 2: 审核员工作量排行 ====================
+
+    @Tool("获取审核员工作量排行。返回已格式化的 Markdown 表格文本。")
+    public String getReviewerWorkload() {
+        List<BizBill> bills = billService.list(
+                new LambdaQueryWrapper<BizBill>()
+                        .isNotNull(BizBill::getAuditBy)
+                        .in(BizBill::getStatus, "2", "3"));
+
+        Map<String, ReviewerWorkloadVo> map = new LinkedHashMap<>();
+        for (BizBill b : bills) {
+            String name = b.getAuditBy();
+            ReviewerWorkloadVo vo = map.computeIfAbsent(name,
+                    k -> new ReviewerWorkloadVo(k, 0, 0, 0));
+            vo.setTotalCount(vo.getTotalCount() + 1);
+            if ("2".equals(b.getStatus())) {
+                vo.setApprovedCount(vo.getApprovedCount() + 1);
+            } else {
+                vo.setRejectedCount(vo.getRejectedCount() + 1);
+            }
+        }
+
+        List<ReviewerWorkloadVo> sorted = map.values().stream()
+                .sorted(Comparator.comparingLong(ReviewerWorkloadVo::getTotalCount).reversed())
+                .collect(Collectors.toList());
+
+        if (sorted.isEmpty()) {
+            return "暂无审核记录。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("共 **").append(sorted.size()).append("** 位审核员参与审核。\n\n");
+        sb.append("| 审核员 | 审核总量 | 通过数 | 退回数 | 通过率 |\n");
+        sb.append("|--------|----------|--------|--------|--------|\n");
+        for (ReviewerWorkloadVo w : sorted) {
+            long total = w.getApprovedCount() + w.getRejectedCount();
+            String rate = total > 0
+                    ? String.format("%.1f%%", 100.0 * w.getApprovedCount() / total) : "0%";
+            sb.append("| ").append(w.getReviewerName())
+                    .append(" | ").append(w.getTotalCount())
+                    .append(" | ").append(w.getApprovedCount())
+                    .append(" | ").append(w.getRejectedCount())
+                    .append(" | ").append(rate)
+                    .append(" |\n");
+        }
+
+        return sb.toString();
+    }
+    // ==================== Markdown 表格格式化 ====================
+
+    /**
+     * 将结构化数据转为 Markdown 管道表格字符串。
+     * LLM 拿到后直接用，无需自己排版。
+     */
+    private String toMarkdownTable(List<String> headers, List<List<String>> rows) {
+        StringBuilder sb = new StringBuilder();
+        // 表头
+        sb.append("| ").append(String.join(" | ", headers)).append(" |\n");
+        // 分隔行
+        sb.append("| ").append(headers.stream().map(h -> "---").collect(Collectors.joining(" | "))).append(" |\n");
+        // 数据行
+        for (List<String> row : rows) {
+            sb.append("| ").append(String.join(" | ", row)).append(" |\n");
+        }
+        return sb.toString();
+    }
 }
