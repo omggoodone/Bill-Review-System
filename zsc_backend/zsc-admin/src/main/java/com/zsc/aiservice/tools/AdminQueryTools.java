@@ -119,6 +119,86 @@ public class AdminQueryTools {
 
         return sb.toString();
     }
+
+    // ==================== Tool 3: 多条件搜索票据 ====================
+
+    @Tool("按条件搜索票据：支持按状态、类别ID、提交人、审核人、关键词(标题/编号)、日期范围组合查询。" +
+            "所有参数均可选，AI根据用户意图传入相关参数")
+    public List<Map<String, Object>> searchBills(
+            @P("状态：0草稿 1待审核 2已通过 3已退回") String status,
+            @P("类别ID") Long categoryId,
+            @P("提交人用户名") String createBy,
+            @P("审核人用户名") String auditBy,
+            @P("搜索关键词，匹配标题和票据编号") String keyword,
+            @P("起始日期 yyyy-MM-dd") String startDate,
+            @P("截止日期 yyyy-MM-dd") String endDate) {
+
+        LambdaQueryWrapper<BizBill> wrapper = new LambdaQueryWrapper<>();
+
+        if (status != null && !status.isEmpty()) {
+            wrapper.eq(BizBill::getStatus, status);
+        }
+        if (categoryId != null) {
+            wrapper.eq(BizBill::getCategoryId, categoryId);
+        }
+        if (createBy != null && !createBy.isEmpty()) {
+            wrapper.eq(BizBill::getCreateBy, createBy);
+        }
+        if (auditBy != null && !auditBy.isEmpty()) {
+            wrapper.eq(BizBill::getAuditBy, auditBy);
+        }
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.and(w -> w
+                    .like(BizBill::getTitle, keyword)
+                    .or()
+                    .like(BizBill::getBillNo, keyword));
+        }
+        if (startDate != null && !startDate.isEmpty()) {
+            wrapper.ge(BizBill::getCreateTime, parseDateStart(startDate));
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            wrapper.le(BizBill::getCreateTime, parseDateEnd(endDate));
+        }
+
+        wrapper.orderByDesc(BizBill::getCreateTime);
+        // 限制最多返回30条，避免单次返回过多
+        wrapper.last("LIMIT 30");
+
+        List<BizBill> bills = billService.list(wrapper);
+
+        if (bills.isEmpty()) {
+            return List.of(Map.of("info", "未找到符合条件的票据"));
+        }
+
+        // 批量加载类别名称
+        Set<Long> catIds = bills.stream()
+                .map(BizBill::getCategoryId).filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> catNameMap = new HashMap<>();
+        if (!catIds.isEmpty()) {
+            categoryService.listByIds(catIds)
+                    .forEach(c -> catNameMap.put(c.getCategoryId(), c.getCategoryName()));
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (BizBill bill : bills) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", bill.getId());
+            m.put("billNo", bill.getBillNo());
+            m.put("title", bill.getTitle());
+            m.put("amount", bill.getAmount() != null ? bill.getAmount().toString() : "0.00");
+            m.put("status", statusLabel(bill.getStatus()));
+            m.put("categoryName", catNameMap.getOrDefault(bill.getCategoryId(), "未知"));
+            m.put("createBy", bill.getCreateBy());
+            m.put("createTime", fmt(bill.getCreateTime()));
+            m.put("auditBy", bill.getAuditBy());
+            m.put("auditComment", bill.getAuditComment());
+            result.add(m);
+        }
+        return result;
+    }
+
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
@@ -136,5 +216,58 @@ public class AdminQueryTools {
             sb.append("| ").append(String.join(" | ", row)).append(" |\n");
         }
         return sb.toString();
+    }
+
+    // ==================== 辅助方法 ====================
+
+    private String statusLabel(String s) {
+        if (s == null) return "未知";
+        return switch (s) {
+            case "0" -> "草稿";
+            case "1" -> "待审核";
+            case "2" -> "已通过";
+            case "3" -> "已退回";
+            default -> "未知(" + s + ")";
+        };
+    }
+
+    private String fmt(Date date) {
+        if (date == null) return null;
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
+    }
+
+    private Date toDate(LocalDate ld) {
+        return Date.from(ld.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    private LocalDate toLocalDate(Date date) {
+        if (date == null) return null;
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private Date parseDateStart(String dateStr) {
+        return toDate(LocalDate.parse(dateStr, DATE_FMT));
+    }
+
+    private Date parseDateEnd(String dateStr) {
+        return toDate(LocalDate.parse(dateStr, DATE_FMT).plusDays(1));
+    }
+
+    private long countSubmittedBetween(Date start, Date end) {
+        return billService.count(new LambdaQueryWrapper<BizBill>()
+                .between(BizBill::getCreateTime, start, end));
+    }
+
+    private long countAuditedBetween(String status, Date start, Date end) {
+        return billService.count(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getStatus, status)
+                .between(BizBill::getAuditTime, start, end));
+    }
+
+    private String calcChange(long current, long previous) {
+        if (previous == 0) return current > 0 ? "新增（上周为0）" : "持平（均为0）";
+        double change = 100.0 * (current - previous) / previous;
+        String sign = change >= 0 ? "+" : "";
+        return sign + String.format("%.1f%%", change);
     }
 }
