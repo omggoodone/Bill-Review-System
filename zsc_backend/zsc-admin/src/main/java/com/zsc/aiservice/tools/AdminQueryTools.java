@@ -198,6 +198,50 @@ public class AdminQueryTools {
         return result;
     }
 
+    // ==================== Tool 4: 各类别金额汇总 ====================
+
+    @Tool("获取各类别已通过票据的金额汇总，含占比。用于了解支出结构分布")
+    public List<Map<String, Object>> getCategorySummary() {
+        List<BizBill> approvedBills = billService.list(
+                new LambdaQueryWrapper<BizBill>().eq(BizBill::getStatus, "2"));
+
+        if (approvedBills.isEmpty()) {
+            return List.of(Map.of("info", "暂无已通过票据"));
+        }
+
+        // 按类别ID汇总
+        Map<Long, Long> amountMap = new LinkedHashMap<>();
+        for (BizBill b : approvedBills) {
+            Long cid = b.getCategoryId();
+            long amt = b.getAmount() != null ? b.getAmount().longValue() : 0L;
+            amountMap.merge(cid != null ? cid : 0L, amt, Long::sum);
+        }
+
+        // 加载类别名称
+        Map<Long, String> catNames = new HashMap<>();
+        if (!amountMap.isEmpty()) {
+            categoryService.listByIds(amountMap.keySet())
+                    .forEach(c -> catNames.put(c.getCategoryId(), c.getCategoryName()));
+        }
+
+        long total = amountMap.values().stream().mapToLong(Long::longValue).sum();
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<Long, Long> e : amountMap.entrySet()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("categoryName", catNames.getOrDefault(e.getKey(), "未分类"));
+            m.put("amount", e.getValue().toString());
+            m.put("percent", total > 0 ?
+                    String.format("%.1f%%", 100.0 * e.getValue() / total) : "0%");
+            result.add(m);
+        }
+        result.sort((a, b) -> {
+            long va = Long.parseLong((String) b.get("amount"));
+            long vb = Long.parseLong((String) a.get("amount"));
+            return Long.compare(va, vb);
+        });
+        return result;
+    }
 
     // ==================== Markdown 表格格式化 ====================
 
