@@ -391,6 +391,185 @@ public class AdminQueryTools {
         return report;
     }
 
+    // ==================== Tool 8: 用户画像 ====================
+
+    @Tool("获取指定用户的行为画像：基本信息、提交统计(总数/通过率)、金额特征(均值/最高/累计)、" +
+            "偏好类别分布、退回原因分析、提交习惯(本月/上月/月均/趋势方向)、风险标记。" +
+            "管理员问'分析XXX'或'XXX这个人怎么样'时调用此工具")
+    public Map<String, Object> getUserProfile(@P("用户名") String userName) {
+        // 1. 用户基本信息
+        SysUser sysUser = userMapper.selectUserByUserName(userName);
+        if (sysUser == null) {
+            return Map.of("found", false, "message", "未找到用户：" + userName);
+        }
+
+        Map<String, Object> profile = new LinkedHashMap<>();
+
+        // 基本信息
+        Map<String, Object> basicInfo = new LinkedHashMap<>();
+        basicInfo.put("用户名", sysUser.getUserName());
+        basicInfo.put("昵称", sysUser.getNickName());
+        basicInfo.put("邮箱", sysUser.getEmail());
+        basicInfo.put("手机号", sysUser.getPhonenumber());
+        basicInfo.put("状态", "0".equals(sysUser.getStatus()) ? "正常" : "停用");
+        basicInfo.put("注册时间", fmt(sysUser.getCreateTime()));
+
+        // 角色
+        List<SysRole> roles = roleMapper.selectRolesByUserName(userName);
+        if (roles != null && !roles.isEmpty()) {
+            basicInfo.put("角色", roles.stream()
+                    .map(SysRole::getRoleName).collect(Collectors.joining(", ")));
+        }
+        profile.put("基本信息", basicInfo);
+
+        // 2. 票据统计
+        List<BizBill> allBills = billService.list(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getCreateBy, userName));
+
+        long total = allBills.size();
+        long draft = allBills.stream().filter(b -> "0".equals(b.getStatus())).count();
+        long pending = allBills.stream().filter(b -> "1".equals(b.getStatus())).count();
+        long approved = allBills.stream().filter(b -> "2".equals(b.getStatus())).count();
+        long rejected = allBills.stream().filter(b -> "3".equals(b.getStatus())).count();
+        long finished = approved + rejected;
+
+        Map<String, Object> submitStats = new LinkedHashMap<>();
+        submitStats.put("总提交", total);
+        submitStats.put("草稿", draft);
+        submitStats.put("待审核", pending);
+        submitStats.put("已通过", approved);
+        submitStats.put("已退回", rejected);
+        submitStats.put("通过率", finished > 0 ?
+                String.format("%.1f%%", 100.0 * approved / finished) : "N/A");
+        profile.put("提交统计", submitStats);
+
+        // 3. 金额特征
+        if (!allBills.isEmpty()) {
+            List<Long> amounts = allBills.stream()
+                    .map(b -> b.getAmount() != null ? b.getAmount().longValue() : 0L)
+                    .sorted().collect(Collectors.toList());
+            long sum = amounts.stream().mapToLong(Long::longValue).sum();
+
+            Map<String, Object> amountStats = new LinkedHashMap<>();
+            amountStats.put("均值", String.format("%.2f", 1.0 * sum / amounts.size()));
+            amountStats.put("最高", amounts.get(amounts.size() - 1).toString());
+            amountStats.put("最低", amounts.get(0).toString());
+            amountStats.put("累计总额", String.valueOf(sum));
+            profile.put("金额特征", amountStats);
+        }
+
+        // 4. 偏好类别
+        Map<Long, Long> catCounts = new LinkedHashMap<>();
+        for (BizBill b : allBills) {
+            Long cid = b.getCategoryId();
+            if (cid != null) catCounts.merge(cid, 1L, Long::sum);
+        }
+        if (!catCounts.isEmpty()) {
+            Map<Long, String> catNames = new HashMap<>();
+            categoryService.listByIds(catCounts.keySet())
+                    .forEach(c -> catNames.put(c.getCategoryId(), c.getCategoryName()));
+            List<Map<String, String>> catList = catCounts.entrySet().stream()
+                    .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                    .map(e -> {
+                        Map<String, String> m = new LinkedHashMap<>();
+                        m.put("类别", catNames.getOrDefault(e.getKey(), "未知"));
+                        m.put("数量", e.getValue().toString());
+                        m.put("占比", String.format("%.0f%%", 100.0 * e.getValue() / total));
+                        return m;
+                    }).collect(Collectors.toList());
+            profile.put("偏好类别", catList);
+        }
+
+        // 5. 退回原因分析
+        List<Long> rejectedBillIds = allBills.stream()
+                .filter(b -> "3".equals(b.getStatus()))
+                .map(BizBill::getId).collect(Collectors.toList());
+        if (!rejectedBillIds.isEmpty()) {
+            List<BizAuditLog> rejectLogs = auditLogMapper.selectList(
+                    new LambdaQueryWrapper<BizAuditLog>()
+                            .in(BizAuditLog::getBillId, rejectedBillIds)
+                            .eq(BizAuditLog::getAction, "2"));
+            Map<String, Long> reasonCount = new LinkedHashMap<>();
+            for (BizAuditLog log : rejectLogs) {
+                String comment = log.getComment();
+                if (comment != null && !comment.isEmpty()) {
+                    reasonCount.merge(comment, 1L, Long::sum);
+                }
+            }
+            if (!reasonCount.isEmpty()) {
+                List<Map<String, String>> reasonList = reasonCount.entrySet().stream()
+                        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                        .map(e -> {
+                            Map<String, String> m = new LinkedHashMap<>();
+                            m.put("原因", e.getKey());
+                            m.put("次数", e.getValue().toString());
+                            return m;
+                        }).collect(Collectors.toList());
+                profile.put("退回原因分析", reasonList);
+            }
+        }
+
+        // 6. 提交习惯（本月/上月/月均/趋势）
+        LocalDate now = LocalDate.now();
+        LocalDate thisMonthStart = now.withDayOfMonth(1);
+        LocalDate lastMonthStart = thisMonthStart.minusMonths(1);
+        LocalDate lastMonthEnd = thisMonthStart.minusDays(1);
+
+        long thisMonthCount = allBills.stream()
+                .filter(b -> {
+                    LocalDate d = toLocalDate(b.getCreateTime());
+                    return d != null && !d.isBefore(thisMonthStart);
+                }).count();
+        long lastMonthCount = allBills.stream()
+                .filter(b -> {
+                    LocalDate d = toLocalDate(b.getCreateTime());
+                    return d != null && !d.isBefore(lastMonthStart) && d.isBefore(lastMonthEnd.plusDays(1));
+                }).count();
+
+        // 计算月均（从第一张票据到现在的月份数）
+        double monthlyAvg = total;
+        if (!allBills.isEmpty()) {
+            BizBill first = allBills.stream()
+                    .filter(b -> b.getCreateTime() != null)
+                    .min(Comparator.comparing(BizBill::getCreateTime)).orElse(null);
+            if (first != null) {
+                LocalDate firstDate = toLocalDate(first.getCreateTime());
+                if (firstDate != null) {
+                    long months = java.time.temporal.ChronoUnit.MONTHS.between(firstDate, now) + 1;
+                    if (months > 0) monthlyAvg = 1.0 * total / months;
+                }
+            }
+        }
+
+        Map<String, Object> habits = new LinkedHashMap<>();
+        habits.put("本月提交", thisMonthCount);
+        habits.put("上月提交", lastMonthCount);
+        habits.put("月均提交", String.format("%.1f", monthlyAvg));
+        if (lastMonthCount > 0) {
+            habits.put("环比趋势", thisMonthCount > lastMonthCount ? "上升" :
+                    thisMonthCount < lastMonthCount ? "下降" : "持平");
+        }
+        profile.put("提交习惯", habits);
+
+        // 7. 风险标记
+        List<String> risks = new ArrayList<>();
+        if (thisMonthCount > monthlyAvg * 1.5) {
+            risks.add("本月提交量突增（月均 " + String.format("%.0f", monthlyAvg) +
+                    " 单，本月已 " + thisMonthCount + " 单）");
+        }
+        if (finished > 0 && rejected > 0) {
+            double rejectRate = 1.0 * rejected / finished;
+            if (rejectRate > 0.5) {
+                risks.add("退回率偏高（" + String.format("%.0f%%", 100 * rejectRate) + "），建议关注提交质量");
+            }
+        }
+        profile.put("风险标记", risks.isEmpty() ? "无" : risks);
+
+        return profile;
+    }
+
+    
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
