@@ -258,6 +258,83 @@ public class AdminQueryTools {
                 .collect(Collectors.toList());
     }
 
+    // ==================== Tool 6: 日报摘要 ====================
+
+    @Tool("获取指定日期的运行日报：新提交数、审核通过数、审核退回数、退回率、" +
+            "积压数量(超3天未审)和详情、当日审核员审核排行。" +
+            "管理员问'日报'或'今天怎么样'时调用此工具")
+    public Map<String, Object> getDailyDigest(
+            @P("日期 yyyy-MM-dd，不传默认今天") String date) {
+
+        LocalDate targetDate = (date != null && !date.isEmpty())
+                ? LocalDate.parse(date, DATE_FMT) : LocalDate.now();
+
+        Date dayStart = toDate(targetDate);
+        Date dayEnd = toDate(targetDate.plusDays(1));
+
+        // 当日提交
+        long submitted = billService.count(new LambdaQueryWrapper<BizBill>()
+                .between(BizBill::getCreateTime, dayStart, dayEnd));
+
+        // 当日审核通过
+        long approved = billService.count(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getStatus, "2")
+                .between(BizBill::getAuditTime, dayStart, dayEnd));
+
+        // 当日退回
+        long rejected = billService.count(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getStatus, "3")
+                .between(BizBill::getAuditTime, dayStart, dayEnd));
+
+        long audited = approved + rejected;
+        String rejectionRate = audited > 0 ?
+                String.format("%.1f%%", 100.0 * rejected / audited) : "N/A";
+
+        // 积压（待审超3天）
+        Date threeDaysAgo = toDate(targetDate.minusDays(3));
+        List<BizBill> staleBills = billService.list(new LambdaQueryWrapper<BizBill>()
+                .eq(BizBill::getStatus, "1")
+                .lt(BizBill::getCreateTime, threeDaysAgo)
+                .orderByAsc(BizBill::getCreateTime));
+
+        List<Map<String, String>> staleInfo = staleBills.stream()
+                .map(b -> {
+                    Map<String, String> m = new LinkedHashMap<>();
+                    m.put("billNo", b.getBillNo());
+                    m.put("title", b.getTitle());
+                    m.put("createBy", b.getCreateBy());
+                    m.put("createTime", fmt(b.getCreateTime()));
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        // 当日审核员排行
+        List<BizBill> todayAudited = billService.list(new LambdaQueryWrapper<BizBill>()
+                .in(BizBill::getStatus, "2", "3")
+                .between(BizBill::getAuditTime, dayStart, dayEnd));
+
+        Map<String, Long> reviewerCount = new LinkedHashMap<>();
+        for (BizBill b : todayAudited) {
+            String name = b.getAuditBy();
+            if (name != null) reviewerCount.merge(name, 1L, Long::sum);
+        }
+        List<Map<String, Object>> ranking = reviewerCount.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .map(e -> Map.<String, Object>of("审核员", e.getKey(), "审核数", e.getValue()))
+                .collect(Collectors.toList());
+
+        Map<String, Object> digest = new LinkedHashMap<>();
+        digest.put("日期", targetDate.format(DATE_FMT));
+        digest.put("新提交数", submitted);
+        digest.put("审核通过数", approved);
+        digest.put("审核退回数", rejected);
+        digest.put("退回率", rejectionRate);
+        digest.put("积压数(超3天)", staleBills.size());
+        digest.put("积压详情", staleInfo);
+        digest.put("当日审核排行", ranking);
+        return digest;
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
