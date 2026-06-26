@@ -629,6 +629,64 @@ public class AdminQueryTools {
         return sb.toString();
     }
 
+    // ==================== Tool 10: 用户列表 ====================
+
+    @Tool("获取系统中普通用户和审核员列表（不含超管和系统管理员，出于权限安全考虑）。" +
+            "管理员问'用户管理'、'列出所有用户'、'有哪些用户'时调用此工具。" +
+            "返回已格式化的 Markdown 表格文本。")
+    public String listUsers() {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<SysUser> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 9999);
+        List<SysUser> users = userMapper.selectUserWithRoles(page, null, null, null, "admin_user");
+
+        // 额外过滤超管
+        List<SysUser> filtered = new ArrayList<>();
+        int adminCount = 0, superAdminCount = 0;
+        for (SysUser u : users) {
+            boolean isSuperAdmin = false, isAdminUser = false;
+            if (u.getRoles() != null) {
+                for (SysRole r : u.getRoles()) {
+                    if ("admin".equals(r.getRoleKey())) isSuperAdmin = true;
+                    if ("admin_user".equals(r.getRoleKey())) isAdminUser = true;
+                }
+            }
+            if (isSuperAdmin) { superAdminCount++; continue; }
+            if (isAdminUser) { adminCount++; continue; }
+            filtered.add(u);
+        }
+
+        if (filtered.isEmpty()) {
+            return "系统中暂无普通用户或审核员。";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("共 **").append(filtered.size()).append("** 位用户。\n");
+        if (superAdminCount > 0 || adminCount > 0) {
+            sb.append("（*因权限限制，");
+            if (superAdminCount > 0) sb.append(superAdminCount).append(" 位超级管理员");
+            if (superAdminCount > 0 && adminCount > 0) sb.append("、");
+            if (adminCount > 0) sb.append(adminCount).append(" 位系统管理员");
+            sb.append("不在列表中。*）\n");
+        }
+        sb.append("\n");
+        sb.append("| 用户名 | 邮箱 | 角色 | 状态 | 注册时间 |\n");
+        sb.append("|--------|------|------|------|----------|\n");
+        for (SysUser u : filtered) {
+            String roleName = (u.getRoles() != null && !u.getRoles().isEmpty())
+                    ? u.getRoles().stream().map(r -> r.getRoleName()).collect(Collectors.joining("、"))
+                    : "无角色";
+            String status = "0".equals(u.getStatus()) ? "正常" : "停用";
+            sb.append("| ").append(u.getUserName())
+                    .append(" | ").append(u.getEmail() != null ? u.getEmail() : "-")
+                    .append(" | ").append(roleName)
+                    .append(" | ").append(status)
+                    .append(" | ").append(fmt(u.getCreateTime()))
+                    .append(" |\n");
+        }
+
+        return sb.toString();
+    }
+
     // ==================== Markdown 表格格式化 ====================
 
     /**
