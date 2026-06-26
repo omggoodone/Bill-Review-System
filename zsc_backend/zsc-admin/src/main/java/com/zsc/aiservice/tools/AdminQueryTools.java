@@ -568,7 +568,66 @@ public class AdminQueryTools {
         return profile;
     }
 
-    
+    // ==================== Tool 9: 提交量排名 ====================
+
+    @Tool("获取提交量排名（默认不限时间，全部历史数据），管理员问'谁提交最多'或'提交排名'时调用此工具。" +
+            "返回已格式化的 Markdown 表格文本。")
+    public String getTopSubmitters(
+            @P("起始日期 yyyy-MM-dd，不传则从最早开始") String startDate,
+            @P("截止日期 yyyy-MM-dd，不传则到今天") String endDate,
+            @P("返回前N名，默认10") int topN) {
+
+        if (topN <= 0) topN = 10;
+
+        LambdaQueryWrapper<BizBill> wrapper = new LambdaQueryWrapper<>();
+        if (startDate != null && !startDate.isEmpty()) {
+            wrapper.ge(BizBill::getCreateTime, parseDateStart(startDate));
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            wrapper.le(BizBill::getCreateTime, parseDateEnd(endDate));
+        }
+        wrapper.orderByDesc(BizBill::getCreateTime);
+
+        List<BizBill> bills = billService.list(wrapper);
+
+        // 按创建者分组统计 [total, approved]
+        Map<String, long[]> creatorStats = new LinkedHashMap<>();
+        for (BizBill b : bills) {
+            String name = b.getCreateBy();
+            if (name == null) continue;
+            long[] stats = creatorStats.computeIfAbsent(name, k -> new long[2]);
+            stats[0]++;
+            if ("2".equals(b.getStatus())) stats[1]++;
+        }
+
+        if (creatorStats.isEmpty()) {
+            return "暂无提交记录。";
+        }
+
+        List<Map.Entry<String, long[]>> sorted = creatorStats.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
+                .limit(topN)
+                .collect(Collectors.toList());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("共 **").append(creatorStats.size()).append("** 位用户提交过票据，前 **").append(sorted.size()).append("** 名：\n\n");
+        sb.append("| 排名 | 用户名 | 提交数 | 通过数 | 通过率 |\n");
+        sb.append("|------|--------|--------|--------|--------|\n");
+        int rank = 0;
+        for (Map.Entry<String, long[]> e : sorted) {
+            rank++;
+            long[] v = e.getValue();
+            String rate = v[0] > 0 ? String.format("%.1f%%", 100.0 * v[1] / v[0]) : "N/A";
+            sb.append("| ").append(rank)
+                    .append(" | ").append(e.getKey())
+                    .append(" | ").append(v[0])
+                    .append(" | ").append(v[1])
+                    .append(" | ").append(rate)
+                    .append(" |\n");
+        }
+
+        return sb.toString();
+    }
 
     // ==================== Markdown 表格格式化 ====================
 
