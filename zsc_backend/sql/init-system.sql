@@ -647,7 +647,9 @@ INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `cre
 VALUES
 (1, '用户性别', 'sys_user_sex', '0', 'admin', NOW(), '', NULL, '用户性别列表'),
 (4, '系统开关', 'sys_normal_disable', '0', 'admin', NOW(), '', NULL, '系统开关列表'),
-(25, '票据状态', 'biz_bill_status', '0', 'admin', NOW(), '', NULL, '票据状态: 0-草稿 1-已提交 2-已通过 3-已退回');
+(25, '票据状态', 'biz_bill_status', '0', 'admin', NOW(), '', NULL, '票据状态: 0-草稿 1-已提交 2-已通过 3-已退回'),
+(26, '操作类型', 'sys_oper_type', '0', 'admin', NOW(), '', NULL, '操作日志操作类型'),
+(27, '系统状态', 'sys_common_status', '0', 'admin', NOW(), '', NULL, '操作日志状态');
 UNLOCK TABLES;
 
 LOCK TABLES `sys_dict_data` WRITE;
@@ -661,7 +663,13 @@ VALUES
 (25, 0, '草稿', '0', 'biz_bill_status', '', 'info', 'N', '0', 'admin', NOW(), '', NULL, '票据草稿状态'),
 (26, 1, '已提交', '1', 'biz_bill_status', '', 'warning', 'N', '0', 'admin', NOW(), '', NULL, '票据已提交状态'),
 (27, 2, '已通过', '2', 'biz_bill_status', '', 'success', 'N', '0', 'admin', NOW(), '', NULL, '票据已通过状态'),
-(28, 3, '已退回', '3', 'biz_bill_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NULL, '票据已退回状态');
+(28, 3, '已退回', '3', 'biz_bill_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NULL, '票据已退回状态'),
+(29, 1, '新增', '1', 'sys_oper_type', '', 'success', 'N', '0', 'admin', NOW(), '', NULL, '新增操作'),
+(30, 2, '修改', '2', 'sys_oper_type', '', 'warning', 'N', '0', 'admin', NOW(), '', NULL, '修改操作'),
+(31, 3, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', 'admin', NOW(), '', NULL, '删除操作'),
+(32, 5, '导出', '5', 'sys_oper_type', '', 'info', 'N', '0', 'admin', NOW(), '', NULL, '导出操作'),
+(33, 1, '成功', '0', 'sys_common_status', '', 'success', 'N', '0', 'admin', NOW(), '', NULL, '操作成功'),
+(34, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NULL, '操作失败');
 UNLOCK TABLES;
 
 -- 初始化菜单（系统管理目录 + 票据管理目录 + 注册审核等）
@@ -696,7 +704,12 @@ VALUES
 (1000, '用户查询', 3016, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query', '#', 'admin', NOW(), '', NULL, ''),
 (1002, '用户编辑', 3016, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:edit', '#', 'admin', NOW(), '', NULL, ''),
 (1003, '用户删除', 3016, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:remove', '#', 'admin', NOW(), '', NULL, ''),
-(1006, '重置密码', 3016, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd', '#', 'admin', NOW(), '', NULL, '');
+(1006, '重置密码', 3016, 4, '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:resetPwd', '#', 'admin', NOW(), '', NULL, ''),
+-- 操作日志
+(3030, '操作日志', 3014, 10, 'monitor/operlog', 'monitor/operlog/index', '', '', 1, 0, 'C', '0', '0', 'monitor:operlog:list', 'log', 'admin', NOW(), '', NULL, '操作日志查看'),
+(3031, '操作日志查询', 3030, 1, '', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:query', '#', 'admin', NOW(), '', NULL, ''),
+(3032, '操作日志删除', 3030, 2, '', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:remove', '#', 'admin', NOW(), '', NULL, ''),
+(3033, '操作日志导出', 3030, 3, '', '', '', '', 1, 0, 'F', '0', '0', 'monitor:operlog:export', '#', 'admin', NOW(), '', NULL, '');
 UNLOCK TABLES;
 
 -- 角色-菜单分配
@@ -713,7 +726,10 @@ INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
 -- 管理员(role_id=5): 管理仪表盘 + 用户/类别/注册管理 + 用户操作按钮
 (5, 3014), (5, 3015), (5, 3016), (5, 3017), (5, 3018),
 (5, 3008), (5, 3009), (5, 3010), (5, 3011),
-(5, 1000), (5, 1002), (5, 1003), (5, 1006);
+(5, 1000), (5, 1002), (5, 1003), (5, 1006),
+-- 操作日志权限（超管 + 管理员）
+(1, 3030), (1, 3031), (1, 3032), (1, 3033),
+(5, 3030), (5, 3031), (5, 3032), (5, 3033);
 UNLOCK TABLES;
 
 -- 默认票据类别
